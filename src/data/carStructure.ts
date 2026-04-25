@@ -26,6 +26,26 @@ export interface StructurePanel {
   vertices: readonly [VertexId, VertexId, VertexId]
 }
 
+export type DmxFixtureType = "single-color-can"
+
+export interface DmxFixtureRotation {
+  xDeg: number
+  yDeg: number
+}
+
+interface DmxFixtureMountConfig {
+  id: string
+  type: DmxFixtureType
+  mountEdgeId: string
+  rotation: DmxFixtureRotation
+  color: string
+}
+
+export interface DmxFixture extends DmxFixtureMountConfig {
+  position: readonly [number, number, number]
+  baseTarget: readonly [number, number, number]
+}
+
 export const MICRONS_PER_METER = 1_000_000
 
 export const STRUCTURE_VERTICES = [
@@ -332,19 +352,31 @@ export const STRUCTURE_PANELS = [
   { id: "25-83-84", vertices: [25, 83, 84] },
   { id: "25-83-114", vertices: [25, 83, 114] },
   { id: "25-84-88", vertices: [25, 84, 88] },
+  { id: "25-88-110", vertices: [25, 88, 110] },
   { id: "26-28-111", vertices: [26, 28, 111] },
   { id: "26-28-115", vertices: [26, 28, 115] },
   { id: "26-99-100", vertices: [26, 99, 100] },
   { id: "26-99-102", vertices: [26, 99, 102] },
   { id: "26-100-115", vertices: [26, 100, 115] },
+  { id: "26-102-111", vertices: [26, 102, 111] },
   { id: "27-109-110", vertices: [27, 109, 110] },
   { id: "27-109-112", vertices: [27, 109, 112] },
   { id: "27-112-114", vertices: [27, 112, 114] },
   { id: "28-109-111", vertices: [28, 109, 111] },
   { id: "28-109-113", vertices: [28, 109, 113] },
   { id: "28-113-115", vertices: [28, 113, 115] },
+  { id: "44-47-50", vertices: [44, 47, 50] },
+  { id: "47-51-54", vertices: [47, 51, 54] },
+  { id: "47-51-90", vertices: [47, 51, 90] },
+  { id: "51-54-82", vertices: [51, 54, 82] },
+  { id: "51-69-82", vertices: [51, 69, 82] },
   { id: "51-69-90", vertices: [51, 69, 90] },
+  { id: "52-55-58", vertices: [52, 55, 58] },
+  { id: "52-55-92", vertices: [52, 55, 92] },
+  { id: "52-58-96", vertices: [52, 58, 96] },
+  { id: "52-75-92", vertices: [52, 75, 92] },
   { id: "52-75-96", vertices: [52, 75, 96] },
+  { id: "56-57-58", vertices: [56, 57, 58] },
   { id: "60-65-93", vertices: [60, 65, 93] },
   { id: "60-93-127", vertices: [60, 93, 127] },
   { id: "60-125-127", vertices: [60, 125, 127] },
@@ -369,15 +401,24 @@ export const STRUCTURE_PANELS = [
   { id: "78-128-129", vertices: [78, 128, 129] },
   { id: "79-80-97", vertices: [79, 80, 97] },
   { id: "80-96-97", vertices: [80, 96, 97] },
+  { id: "81-82-92", vertices: [81, 82, 92] },
   { id: "81-89-91", vertices: [81, 89, 91] },
+  { id: "84-86-88", vertices: [84, 86, 88] },
   { id: "83-84-85", vertices: [83, 84, 85] },
+  { id: "86-88-120", vertices: [86, 88, 120] },
+  { id: "88-110-119", vertices: [88, 110, 119] },
   { id: "89-91-126", vertices: [89, 91, 126] },
   { id: "89-125-126", vertices: [89, 125, 126] },
   { id: "89-125-127", vertices: [89, 125, 127] },
   { id: "91-126-129", vertices: [91, 126, 129] },
   { id: "91-128-129", vertices: [91, 128, 129] },
   { id: "98-99-100", vertices: [98, 99, 100] },
+  { id: "99-101-102", vertices: [99, 101, 102] },
+  { id: "101-102-121", vertices: [101, 102, 121] },
+  { id: "102-111-119", vertices: [102, 111, 119] },
+  { id: "109-110-111", vertices: [109, 110, 111] },
   { id: "109-112-113", vertices: [109, 112, 113] },
+  { id: "110-111-119", vertices: [110, 111, 119] },
   { id: "112-113-124", vertices: [112, 113, 124] },
   { id: "112-114-116", vertices: [112, 114, 116] },
   { id: "112-116-124", vertices: [112, 116, 124] },
@@ -435,6 +476,102 @@ function edgeKey(start: VertexId, end: VertexId) {
 export const STRUCTURE_EDGE_KEYS = new Set(
   STRUCTURE_EDGES.map((edge) => edgeKey(edge.vertices[0], edge.vertices[1]))
 )
+
+const STRUCTURE_EDGE_MAP = new Map(
+  STRUCTURE_EDGES_RESOLVED.map((edge) => [edge.id, edge])
+)
+
+const DMX_FIXTURE_MOUNT_OFFSET_METERS = 0.18
+const DMX_FIXTURE_UP_OFFSET_METERS = 0.12
+
+const DMX_FIXTURE_MOUNTS = [
+  {
+    id: "dmx-can-01",
+    type: "single-color-can",
+    mountEdgeId: "47-50",
+    rotation: { xDeg: -8, yDeg: -18 },
+    color: "#ffdca8",
+  },
+  {
+    id: "dmx-can-02",
+    type: "single-color-can",
+    mountEdgeId: "56-58",
+    rotation: { xDeg: -10, yDeg: 18 },
+    color: "#ffdca8",
+  },
+  {
+    id: "dmx-can-03",
+    type: "single-color-can",
+    mountEdgeId: "69-82",
+    rotation: { xDeg: 6, yDeg: 12 },
+    color: "#c7e7ff",
+  },
+  {
+    id: "dmx-can-04",
+    type: "single-color-can",
+    mountEdgeId: "73-92",
+    rotation: { xDeg: 6, yDeg: -12 },
+    color: "#c7e7ff",
+  },
+  {
+    id: "dmx-can-05",
+    type: "single-color-can",
+    mountEdgeId: "83-114",
+    rotation: { xDeg: -15, yDeg: -8 },
+    color: "#fff1c9",
+  },
+  {
+    id: "dmx-can-06",
+    type: "single-color-can",
+    mountEdgeId: "88-110",
+    rotation: { xDeg: -18, yDeg: 10 },
+    color: "#fff1c9",
+  },
+  {
+    id: "dmx-can-07",
+    type: "single-color-can",
+    mountEdgeId: "91-128",
+    rotation: { xDeg: 10, yDeg: -22 },
+    color: "#ffd2f0",
+  },
+  {
+    id: "dmx-can-08",
+    type: "single-color-can",
+    mountEdgeId: "112-124",
+    rotation: { xDeg: -12, yDeg: 22 },
+    color: "#ffd2f0",
+  },
+] as const satisfies readonly DmxFixtureMountConfig[]
+
+function resolveDmxFixture(config: DmxFixtureMountConfig): DmxFixture {
+  const mountEdge = STRUCTURE_EDGE_MAP.get(config.mountEdgeId)
+
+  if (!mountEdge) {
+    throw new Error(`DMX fixture ${config.id} references a missing edge`)
+  }
+
+  const start = new THREE.Vector3(...mountEdge.verticesMeters[0].position)
+  const end = new THREE.Vector3(...mountEdge.verticesMeters[1].position)
+  const midpoint = start.add(end).multiplyScalar(0.5)
+  const outward = midpoint.clone().sub(STRUCTURE_CENTER)
+
+  if (outward.lengthSq() < 1e-8) {
+    outward.set(1, 0, 0)
+  }
+
+  const position = midpoint
+    .clone()
+    .add(outward.normalize().multiplyScalar(DMX_FIXTURE_MOUNT_OFFSET_METERS))
+    .add(new THREE.Vector3(0, DMX_FIXTURE_UP_OFFSET_METERS, 0))
+
+  return {
+    ...config,
+    position: position.toArray(),
+    baseTarget: STRUCTURE_CENTER.toArray(),
+  }
+}
+
+export const DMX_FIXTURES = DMX_FIXTURE_MOUNTS.map(resolveDmxFixture)
 
 function getPanelEdgeIds(panel: StructurePanel) {
   return [
@@ -613,12 +750,32 @@ export function validateStructureData() {
     )
   }
 
+  for (const fixture of DMX_FIXTURES) {
+    if (!STRUCTURE_EDGE_KEYS.has(fixture.mountEdgeId)) {
+      errors.push(
+        `DMX fixture ${fixture.id} references missing edge ${fixture.mountEdgeId}`
+      )
+    }
+
+    if (
+      fixture.position.some((value) => !Number.isFinite(value)) ||
+      fixture.baseTarget.some((value) => !Number.isFinite(value))
+    ) {
+      errors.push(`DMX fixture ${fixture.id} has invalid derived coordinates`)
+    }
+  }
+
+  if (DMX_FIXTURES.length !== 8) {
+    errors.push(`Expected 8 DMX fixtures, found ${DMX_FIXTURES.length}`)
+  }
+
   return {
     valid: errors.length === 0,
     errors,
     vertexCount: STRUCTURE_VERTICES.length,
     edgeCount: STRUCTURE_EDGES.length,
     panelCount: STRUCTURE_PANELS.length,
+    dmxFixtureCount: DMX_FIXTURES.length,
     extentsMeters: {
       x: STRUCTURE_SIZE.x,
       y: STRUCTURE_SIZE.y,

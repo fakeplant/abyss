@@ -3,25 +3,28 @@ import {
   ColorInput,
   Group,
   NumberInput,
+  SegmentedControl,
   Slider,
   Stack,
   Switch,
   Text,
 } from "@mantine/core"
 import {
+  IconBulb,
   IconCircleLetterI,
   IconDimensions,
   IconEye,
   IconTriangle,
 } from "@tabler/icons-react"
 import {
+  DMX_FIXTURES,
   STRUCTURE_EDGES,
   STRUCTURE_PANELS,
   STRUCTURE_SIZE,
   STRUCTURE_VERTICES,
   validateStructureData,
 } from "../../data/carStructure"
-import { useAbyssStore } from "../../hooks/useAbyssStore"
+import { DmxRenderMode, useAbyssStore } from "../../hooks/useAbyssStore"
 import classes from "./Menu.module.css"
 
 function Menu() {
@@ -33,6 +36,13 @@ function Menu() {
     showPanels,
     panelColor,
     panelGapMeters,
+    showDmxFixtures,
+    dmxRenderMode,
+    dmxColor,
+    dmxRealIntensity,
+    dmxFakeIntensity,
+    dmxBeamAngleDeg,
+    dmxCastShadows,
     setShowLabels,
     setTubeDiameterMeters,
     setTubeColor,
@@ -40,6 +50,13 @@ function Menu() {
     setShowPanels,
     setPanelColor,
     setPanelGapMeters,
+    setShowDmxFixtures,
+    setDmxRenderMode,
+    setDmxColor,
+    setDmxRealIntensity,
+    setDmxFakeIntensity,
+    setDmxBeamAngleDeg,
+    setDmxCastShadows,
   } = useAbyssStore()
 
   const validation = validateStructureData()
@@ -67,6 +84,96 @@ function Menu() {
             {STRUCTURE_VERTICES.length} vertices · {STRUCTURE_EDGES.length}{" "}
             edges
           </Text>
+        </Box>
+
+        <Box>
+          <Group
+            gap="xs"
+            mb="xs"
+          >
+            <IconBulb size={16} />
+            <Text
+              size="sm"
+              fw={600}
+            >
+              DMX Fixtures
+            </Text>
+          </Group>
+          <Stack gap="sm">
+            <Switch
+              label={`${DMX_FIXTURES.length} single-color cans`}
+              checked={showDmxFixtures}
+              onChange={(event) =>
+                setShowDmxFixtures(event.currentTarget.checked)
+              }
+              size="sm"
+            />
+            <SegmentedControl
+              value={dmxRenderMode}
+              onChange={(value) => setDmxRenderMode(value as DmxRenderMode)}
+              data={[
+                { label: "Real", value: "real" },
+                { label: "Fake", value: "fake" },
+              ]}
+              size="xs"
+              fullWidth
+            />
+            <ColorInput
+              label="Light color"
+              value={dmxColor}
+              onChange={setDmxColor}
+              swatches={["#ffdca8", "#c7e7ff", "#ffd2f0", "#ffffff"]}
+              size="xs"
+            />
+            <NumberInput
+              label="Real intensity"
+              min={0}
+              max={60}
+              step={1}
+              decimalScale={1}
+              value={dmxRealIntensity}
+              onChange={(value) =>
+                setDmxRealIntensity(typeof value === "number" ? value : 12)
+              }
+              disabled={dmxRenderMode !== "real"}
+              size="xs"
+            />
+            <NumberInput
+              label="Fake beam strength"
+              min={0}
+              max={1}
+              step={0.02}
+              decimalScale={2}
+              value={dmxFakeIntensity}
+              onChange={(value) =>
+                setDmxFakeIntensity(typeof value === "number" ? value : 0.24)
+              }
+              disabled={dmxRenderMode !== "fake"}
+              size="xs"
+            />
+            <NumberInput
+              label="Beam angle"
+              suffix="°"
+              min={4}
+              max={70}
+              step={1}
+              decimalScale={0}
+              value={dmxBeamAngleDeg}
+              onChange={(value) =>
+                setDmxBeamAngleDeg(typeof value === "number" ? value : 24)
+              }
+              size="xs"
+            />
+            <Switch
+              label="Cast shadows"
+              checked={dmxCastShadows}
+              onChange={(event) =>
+                setDmxCastShadows(event.currentTarget.checked)
+              }
+              disabled={dmxRenderMode !== "real"}
+              size="sm"
+            />
+          </Stack>
         </Box>
 
         <Box>

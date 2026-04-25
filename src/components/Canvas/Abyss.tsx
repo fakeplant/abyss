@@ -4,7 +4,7 @@ import { Grid } from "@react-three/drei"
 import * as THREE from "three"
 import Cameras from "./Cameras"
 import Scene from "./Scene"
-import { getThemeColor, parseThemeColor, useMantineTheme } from "@mantine/core"
+import { useMantineTheme } from "@mantine/core"
 
 function Loading() {
   return null

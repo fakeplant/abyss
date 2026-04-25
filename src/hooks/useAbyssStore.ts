@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
 
+export type DmxRenderMode = "real" | "fake"
+
 export interface AbyssViewState {
   menuOpen: boolean
   showLabels: boolean
@@ -9,6 +11,13 @@ export interface AbyssViewState {
   showPanels: boolean
   panelColor: string
   panelGapMeters: number
+  showDmxFixtures: boolean
+  dmxRenderMode: DmxRenderMode
+  dmxColor: string
+  dmxRealIntensity: number
+  dmxFakeIntensity: number
+  dmxBeamAngleDeg: number
+  dmxCastShadows: boolean
 }
 
 export interface AbyssViewActions {
@@ -20,6 +29,13 @@ export interface AbyssViewActions {
   setShowPanels: (show: boolean) => void
   setPanelColor: (color: string) => void
   setPanelGapMeters: (gap: number) => void
+  setShowDmxFixtures: (show: boolean) => void
+  setDmxRenderMode: (mode: DmxRenderMode) => void
+  setDmxColor: (color: string) => void
+  setDmxRealIntensity: (intensity: number) => void
+  setDmxFakeIntensity: (intensity: number) => void
+  setDmxBeamAngleDeg: (angle: number) => void
+  setDmxCastShadows: (castShadows: boolean) => void
 }
 
 const DEFAULT_STATE: AbyssViewState = {
@@ -31,6 +47,13 @@ const DEFAULT_STATE: AbyssViewState = {
   showPanels: true,
   panelColor: "#2f3030",
   panelGapMeters: 0.04,
+  showDmxFixtures: true,
+  dmxRenderMode: "real",
+  dmxColor: "#ffdca8",
+  dmxRealIntensity: 12,
+  dmxFakeIntensity: 0.24,
+  dmxBeamAngleDeg: 24,
+  dmxCastShadows: true,
 }
 
 let currentState = DEFAULT_STATE
@@ -62,5 +85,12 @@ export function useAbyssStore(): AbyssViewState & AbyssViewActions {
     setShowPanels: (showPanels) => setState({ showPanels }),
     setPanelColor: (panelColor) => setState({ panelColor }),
     setPanelGapMeters: (panelGapMeters) => setState({ panelGapMeters }),
+    setShowDmxFixtures: (showDmxFixtures) => setState({ showDmxFixtures }),
+    setDmxRenderMode: (dmxRenderMode) => setState({ dmxRenderMode }),
+    setDmxColor: (dmxColor) => setState({ dmxColor }),
+    setDmxRealIntensity: (dmxRealIntensity) => setState({ dmxRealIntensity }),
+    setDmxFakeIntensity: (dmxFakeIntensity) => setState({ dmxFakeIntensity }),
+    setDmxBeamAngleDeg: (dmxBeamAngleDeg) => setState({ dmxBeamAngleDeg }),
+    setDmxCastShadows: (dmxCastShadows) => setState({ dmxCastShadows }),
   }
 }
