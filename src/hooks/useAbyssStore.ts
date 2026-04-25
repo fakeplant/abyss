@@ -18,6 +18,9 @@ export interface AbyssViewState {
   dmxFakeIntensity: number
   dmxBeamAngleDeg: number
   dmxCastShadows: boolean
+  showHumans: boolean
+  humanScale: number
+  humanAnimationSpeed: number
 }
 
 export interface AbyssViewActions {
@@ -36,6 +39,9 @@ export interface AbyssViewActions {
   setDmxFakeIntensity: (intensity: number) => void
   setDmxBeamAngleDeg: (angle: number) => void
   setDmxCastShadows: (castShadows: boolean) => void
+  setShowHumans: (showHumans: boolean) => void
+  setHumanScale: (humanScale: number) => void
+  setHumanAnimationSpeed: (humanAnimationSpeed: number) => void
 }
 
 const DEFAULT_STATE: AbyssViewState = {
@@ -54,6 +60,9 @@ const DEFAULT_STATE: AbyssViewState = {
   dmxFakeIntensity: 0.24,
   dmxBeamAngleDeg: 24,
   dmxCastShadows: false,
+  showHumans: true,
+  humanScale: 1,
+  humanAnimationSpeed: 1,
 }
 
 let currentState = DEFAULT_STATE
@@ -92,5 +101,9 @@ export function useAbyssStore(): AbyssViewState & AbyssViewActions {
     setDmxFakeIntensity: (dmxFakeIntensity) => setState({ dmxFakeIntensity }),
     setDmxBeamAngleDeg: (dmxBeamAngleDeg) => setState({ dmxBeamAngleDeg }),
     setDmxCastShadows: (dmxCastShadows) => setState({ dmxCastShadows }),
+    setShowHumans: (showHumans) => setState({ showHumans }),
+    setHumanScale: (humanScale) => setState({ humanScale }),
+    setHumanAnimationSpeed: (humanAnimationSpeed) =>
+      setState({ humanAnimationSpeed }),
   }
 }

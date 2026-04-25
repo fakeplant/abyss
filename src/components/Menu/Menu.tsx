@@ -15,6 +15,7 @@ import {
   IconDimensions,
   IconEye,
   IconTriangle,
+  IconUsers,
 } from "@tabler/icons-react"
 import {
   DMX_FIXTURES,
@@ -24,6 +25,7 @@ import {
   STRUCTURE_VERTICES,
   validateStructureData,
 } from "../../data/carStructure"
+import { HUMAN_PLACEMENTS } from "../../data/humans"
 import { DmxRenderMode, useAbyssStore } from "../../hooks/useAbyssStore"
 import classes from "./Menu.module.css"
 
@@ -43,6 +45,9 @@ function Menu() {
     dmxFakeIntensity,
     dmxBeamAngleDeg,
     dmxCastShadows,
+    showHumans,
+    humanScale,
+    humanAnimationSpeed,
     setShowLabels,
     setTubeDiameterMeters,
     setTubeColor,
@@ -57,6 +62,9 @@ function Menu() {
     setDmxFakeIntensity,
     setDmxBeamAngleDeg,
     setDmxCastShadows,
+    setShowHumans,
+    setHumanScale,
+    setHumanAnimationSpeed,
   } = useAbyssStore()
 
   const validation = validateStructureData()
@@ -70,7 +78,7 @@ function Menu() {
       >
         <Accordion
           multiple
-          defaultValue={["structure", "dmx", "panels", "tube"]}
+          defaultValue={["structure", "dmx", "humans", "panels", "tube"]}
           chevronPosition="right"
           classNames={{
             item: classes.item,
@@ -91,6 +99,51 @@ function Menu() {
                 </Text>
                 <Text size="xs">{STRUCTURE_PANELS.length} lower panels</Text>
                 <Text size="xs">{DMX_FIXTURES.length} DMX test fixtures</Text>
+                <Text size="xs">{HUMAN_PLACEMENTS.length} human refs</Text>
+              </Stack>
+            </Accordion.Panel>
+          </Accordion.Item>
+
+          <Accordion.Item value="humans">
+            <Accordion.Control icon={<IconUsers size={16} />}>
+              Humans
+            </Accordion.Control>
+            <Accordion.Panel>
+              <Stack gap="sm">
+                <Switch
+                  label={`${HUMAN_PLACEMENTS.length} ground refs`}
+                  checked={showHumans}
+                  onChange={(event) =>
+                    setShowHumans(event.currentTarget.checked)
+                  }
+                  size="sm"
+                />
+                <NumberInput
+                  label="Scale"
+                  min={0.1}
+                  max={3}
+                  step={0.05}
+                  decimalScale={2}
+                  value={humanScale}
+                  onChange={(value) =>
+                    setHumanScale(typeof value === "number" ? value : 1)
+                  }
+                  size="xs"
+                />
+                <NumberInput
+                  label="Animation speed"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  decimalScale={2}
+                  value={humanAnimationSpeed}
+                  onChange={(value) =>
+                    setHumanAnimationSpeed(
+                      typeof value === "number" ? value : 1
+                    )
+                  }
+                  size="xs"
+                />
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>

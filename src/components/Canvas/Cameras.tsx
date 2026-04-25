@@ -59,6 +59,7 @@ function Cameras() {
         ref={controlsRef}
         minZoom={6}
         maxZoom={400}
+        maxPolarAngle={Math.PI / 2 - 0.01}
         target={STRUCTURE_CENTER}
         mouseButtons={{
           LEFT: THREE.MOUSE.PAN,

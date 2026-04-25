@@ -4,8 +4,6 @@ import * as THREE from "three"
 import Cameras from "./Cameras"
 import Scene from "./Scene"
 import { STRUCTURE_CENTER, STRUCTURE_SIZE } from "../../data/carStructure"
-import { Environment } from "@react-three/drei"
-import NightSky from "./NightSky"
 
 function Loading() {
   return null

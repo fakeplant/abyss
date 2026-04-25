@@ -1,6 +1,15 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react"
-import { Billboard, Cloud, Clouds, Text } from "@react-three/drei"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useFrame } from "@react-three/fiber"
+import {
+  Billboard,
+  Cloud,
+  Clouds,
+  Text,
+  useAnimations,
+  useFBX,
+} from "@react-three/drei"
 import * as THREE from "three"
+import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js"
 import {
   DMX_FIXTURES,
   DmxFixture,
@@ -9,6 +18,11 @@ import {
   STRUCTURE_VERTICES_METERS,
   getPanelInsetPositions,
 } from "../../data/carStructure"
+import {
+  HUMAN_MODEL_URL,
+  HUMAN_PLACEMENTS,
+  HumanPlacement,
+} from "../../data/humans"
 import { DmxRenderMode, useAbyssStore } from "../../hooks/useAbyssStore"
 
 const Y_AXIS = new THREE.Vector3(0, 1, 0)
@@ -16,6 +30,26 @@ const NEGATIVE_Y_AXIS = new THREE.Vector3(0, -1, 0)
 const WORLD_UP = new THREE.Vector3(0, 1, 0)
 const FAKE_BEAM_LENGTH_METERS = 8
 const REAL_BEAM_DISTANCE_METERS = 18
+const CLOUD_FADE_SECONDS = 5
+
+useFBX.preload(HUMAN_MODEL_URL)
+
+function getStableUnitValue(value: string) {
+  let hash = 2166136261
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  return (hash >>> 0) / 0xffffffff
+}
+
+function smoothstep(value: number) {
+  const clamped = THREE.MathUtils.clamp(value, 0, 1)
+
+  return clamped * clamped * (3 - 2 * clamped)
+}
 
 function getFixtureBeamDirection(fixture: DmxFixture) {
   const position = new THREE.Vector3(...fixture.position)
@@ -218,6 +252,160 @@ function VertexLabels() {
   )
 }
 
+interface HumanAvatarProps {
+  placement: HumanPlacement
+  globalScale: number
+  animationSpeed: number
+}
+
+function HumanAvatar({
+  placement,
+  globalScale,
+  animationSpeed,
+}: HumanAvatarProps) {
+  const fbx = useFBX(HUMAN_MODEL_URL)
+  const model = useMemo(() => {
+    const clonedModel = cloneSkeleton(fbx) as THREE.Group
+
+    clonedModel.traverse((object) => {
+      const mesh = object as THREE.Mesh
+
+      if (mesh.isMesh) {
+        mesh.castShadow = true
+        mesh.receiveShadow = true
+        mesh.frustumCulled = false
+      }
+    })
+
+    return clonedModel
+  }, [fbx])
+  const animations = useMemo(() => fbx.animations, [fbx.animations])
+  const { actions, names, mixer } = useAnimations(animations, model)
+  const activeAnimationName = names[0]
+
+  useEffect(() => {
+    if (!activeAnimationName) {
+      return undefined
+    }
+
+    const action = actions[activeAnimationName]
+
+    if (action) {
+      const clipDuration = action.getClip().duration
+      const offset = clipDuration * getStableUnitValue(placement.id)
+
+      action.reset()
+      action.time = offset
+      action.fadeIn(0.25).play()
+    }
+
+    return () => {
+      action?.fadeOut(0.2)
+    }
+  }, [actions, activeAnimationName, placement.id])
+
+  useEffect(() => {
+    mixer.timeScale = animationSpeed
+  }, [animationSpeed, mixer])
+
+  return (
+    <primitive
+      object={model}
+      position={placement.position}
+      rotation={[0, THREE.MathUtils.degToRad(placement.rotationYDeg), 0]}
+      scale={placement.scale * globalScale}
+    />
+  )
+}
+
+interface HumanLayerProps {
+  scale: number
+  animationSpeed: number
+}
+
+function HumanLayer({ scale, animationSpeed }: HumanLayerProps) {
+  return (
+    <group>
+      {HUMAN_PLACEMENTS.map((placement) => (
+        <HumanAvatar
+          key={placement.id}
+          placement={placement}
+          globalScale={scale}
+          animationSpeed={animationSpeed}
+        />
+      ))}
+    </group>
+  )
+}
+
+function AnimatedClouds() {
+  const [opacities, setOpacities] = useState([1, 0, 0])
+  const previousOpacities = useRef(opacities)
+  const cloudLayers = useMemo(
+    () => [
+      { color: "#cc0000", seed: 11 },
+      { color: "#cc0000", seed: 29 },
+      { color: "#cc0000", seed: 47 },
+      { color: "#cc0000", seed: 23 },
+      { color: "#cc0000", seed: 56 },
+      { color: "#cc0000", seed: 99 },
+    ],
+    []
+  )
+
+  useFrame(({ clock }) => {
+    const phase = (clock.elapsedTime / CLOUD_FADE_SECONDS) % cloudLayers.length
+    const nextOpacities = cloudLayers.map((_, index) => {
+      const distance = Math.min(
+        Math.abs(phase - index),
+        cloudLayers.length - Math.abs(phase - index)
+      )
+
+      return smoothstep(1 - distance)
+    })
+    const changed = nextOpacities.some(
+      (opacity, index) =>
+        Math.abs(opacity - previousOpacities.current[index]) > 0.015
+    )
+
+    if (changed) {
+      previousOpacities.current = nextOpacities
+      setOpacities(nextOpacities)
+    }
+  })
+
+  return (
+    <Clouds
+      material={THREE.MeshBasicMaterial}
+      limit={2000}
+    >
+      {cloudLayers.map((layer, index) => (
+        <group key={layer.seed}>
+          <Cloud
+            seed={layer.seed}
+            segments={40}
+            bounds={[3, 5, 10]}
+            volume={1}
+            color={layer.color}
+            fade={40}
+            opacity={opacities[index] * 0.78}
+            speed={0.08}
+          />
+          <Cloud
+            seed={layer.seed + 1}
+            bounds={[5, 5, 10]}
+            volume={1}
+            color={layer.color}
+            fade={50}
+            opacity={opacities[index] * 0.48}
+            speed={0.05}
+          />
+        </group>
+      ))}
+    </Clouds>
+  )
+}
+
 interface DmxCanFixtureProps {
   fixture: DmxFixture
   renderMode: DmxRenderMode
@@ -380,6 +568,9 @@ function Scene() {
     dmxFakeIntensity,
     dmxBeamAngleDeg,
     dmxCastShadows,
+    showHumans,
+    humanScale,
+    humanAnimationSpeed,
   } = useAbyssStore()
   const radius = Math.max(tubeDiameterMeters / 2, 0.001)
   const tubeMaterial = useMemo(
@@ -457,22 +648,7 @@ function Scene() {
         position={[-8, 8, -12]}
         intensity={1.7}
       />
-      <Clouds material={THREE.MeshBasicMaterial}>
-        <Cloud
-          segments={40}
-          bounds={[10, 2, 2]}
-          volume={1}
-          color="red"
-          fade={40}
-        />
-        <Cloud
-          seed={2}
-          scale={2}
-          volume={1}
-          color="darkred"
-          fade={50}
-        />
-      </Clouds>
+      <AnimatedClouds />
       <group>
         {showPanels && (
           <PanelLayer
@@ -499,6 +675,12 @@ function Scene() {
           radius={radius}
           material={tubeMaterial}
         />
+        {showHumans && (
+          <HumanLayer
+            scale={humanScale}
+            animationSpeed={humanAnimationSpeed}
+          />
+        )}
         {showLabels && <VertexLabels />}
       </group>
     </>
