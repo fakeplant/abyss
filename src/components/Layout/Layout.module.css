@@ -1,0 +1,49 @@
+.wrapper {
+  display: grid;
+  grid-template-columns: 0fr minmax(0, 1fr);
+  height: 100dvh;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--mantine-color-default-border);
+  background: #f7f8fa;
+}
+
+.wrapper.open {
+  grid-template-columns: 320px minmax(0, 1fr);
+}
+
+.wrapper.open > aside:first-child {
+  border-right: 1px solid var(--mantine-color-default-border);
+}
+
+.content {
+  min-width: 0;
+  min-height: 0;
+}
+
+.menuToggle {
+  position: absolute;
+  top: var(--mantine-spacing-lg);
+  left: var(--mantine-spacing-lg);
+  z-index: 20;
+}
+
+.menuButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand {
+  position: absolute;
+  top: var(--mantine-spacing-lg);
+  right: var(--mantine-spacing-lg);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+}
+
+.brandText {
+  letter-spacing: 0.14em;
+}
