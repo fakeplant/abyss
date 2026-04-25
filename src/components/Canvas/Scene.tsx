@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from "react"
-import { Billboard, Text } from "@react-three/drei"
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react"
+import { Billboard, Cloud, Clouds, Text } from "@react-three/drei"
 import * as THREE from "three"
 import {
   DMX_FIXTURES,
@@ -7,24 +7,9 @@ import {
   STRUCTURE_PANELS,
   STRUCTURE_EDGES_RESOLVED,
   STRUCTURE_VERTICES_METERS,
-  StructurePanel,
   getPanelInsetPositions,
 } from "../../data/carStructure"
-import { useAbyssStore } from "../../hooks/useAbyssStore"
-
-interface TubeEdgeProps {
-  start: readonly [number, number, number]
-  end: readonly [number, number, number]
-  radius: number
-  color: string
-  opacity: number
-}
-
-interface PanelMeshProps {
-  panel: StructurePanel
-  color: string
-  gapMeters: number
-}
+import { DmxRenderMode, useAbyssStore } from "../../hooks/useAbyssStore"
 
 const Y_AXIS = new THREE.Vector3(0, 1, 0)
 const NEGATIVE_Y_AXIS = new THREE.Vector3(0, -1, 0)
@@ -56,80 +41,152 @@ function getFixtureBeamDirection(fixture: DmxFixture) {
 }
 
 function getBeamHalfAngleRadians(beamAngleDeg: number) {
-  return THREE.MathUtils.degToRad(THREE.MathUtils.clamp(beamAngleDeg, 1, 85) / 2)
-}
-
-function TubeEdge({ start, end, radius, color, opacity }: TubeEdgeProps) {
-  const startVector = new THREE.Vector3(...start)
-  const endVector = new THREE.Vector3(...end)
-  const direction = endVector.clone().sub(startVector)
-  const length = direction.length()
-  const midpoint = startVector.clone().add(endVector).multiplyScalar(0.5)
-  const quaternion = new THREE.Quaternion().setFromUnitVectors(
-    Y_AXIS,
-    direction.clone().normalize()
-  )
-
-  return (
-    <mesh
-      castShadow
-      receiveShadow
-      position={midpoint}
-      quaternion={quaternion}
-    >
-      <cylinderGeometry args={[radius, radius, length, 14]} />
-      <meshStandardMaterial
-        color={color}
-        roughness={0.74}
-        metalness={0.45}
-        transparent={opacity < 1}
-        opacity={opacity}
-      />
-    </mesh>
+  return THREE.MathUtils.degToRad(
+    THREE.MathUtils.clamp(beamAngleDeg, 1, 85) / 2
   )
 }
 
-function PanelMesh({ panel, color, gapMeters }: PanelMeshProps) {
-  const geometry = useMemo(() => {
-    const points = getPanelInsetPositions(panel, gapMeters)
+interface TubeFrameProps {
+  radius: number
+  material: THREE.Material
+}
 
-    if (!points) {
-      return null
+function TubeFrame({ radius, material }: TubeFrameProps) {
+  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const geometry = useMemo(() => new THREE.CylinderGeometry(1, 1, 1, 14), [])
+
+  useEffect(() => () => geometry.dispose(), [geometry])
+
+  useLayoutEffect(() => {
+    const mesh = meshRef.current
+
+    if (!mesh) {
+      return
     }
 
+    const matrix = new THREE.Matrix4()
+    const scale = new THREE.Vector3()
+
+    STRUCTURE_EDGES_RESOLVED.forEach((edge, index) => {
+      const start = new THREE.Vector3(...edge.verticesMeters[0].position)
+      const end = new THREE.Vector3(...edge.verticesMeters[1].position)
+      const direction = end.clone().sub(start)
+      const length = direction.length()
+      const midpoint = start.add(end).multiplyScalar(0.5)
+      const quaternion = new THREE.Quaternion().setFromUnitVectors(
+        Y_AXIS,
+        direction.normalize()
+      )
+
+      scale.set(radius, length, radius)
+      matrix.compose(midpoint, quaternion, scale)
+      mesh.setMatrixAt(index, matrix)
+    })
+
+    mesh.instanceMatrix.needsUpdate = true
+    mesh.computeBoundingSphere()
+  }, [radius])
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[geometry, material, STRUCTURE_EDGES_RESOLVED.length]}
+      castShadow
+      receiveShadow
+    />
+  )
+}
+
+interface PanelLayerProps {
+  gapMeters: number
+  material: THREE.Material
+}
+
+function PanelLayer({ gapMeters, material }: PanelLayerProps) {
+  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const geometry = useMemo(() => {
     const panelGeometry = new THREE.BufferGeometry()
+
     panelGeometry.setAttribute(
       "position",
-      new THREE.Float32BufferAttribute(
-        points.flatMap((point) => [point.x, point.y, point.z]),
-        3
-      )
+      new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0, 0, 1, 0], 3)
     )
     panelGeometry.setIndex([0, 1, 2])
     panelGeometry.computeVertexNormals()
 
     return panelGeometry
-  }, [panel, gapMeters])
+  }, [])
+  const panelMatrices = useMemo(() => {
+    const normal = new THREE.Vector3()
 
-  if (!geometry) {
-    return null
-  }
+    return STRUCTURE_PANELS.flatMap((panel) => {
+      const points = getPanelInsetPositions(panel, gapMeters)
+
+      if (!points) {
+        return []
+      }
+
+      const [a, b, c] = points
+      const edgeOne = b.clone().sub(a)
+      const edgeTwo = c.clone().sub(a)
+
+      normal.crossVectors(edgeOne, edgeTwo)
+
+      if (normal.lengthSq() < 1e-10) {
+        return []
+      }
+
+      normal.normalize()
+
+      return [
+        new THREE.Matrix4().set(
+          edgeOne.x,
+          edgeTwo.x,
+          normal.x,
+          a.x,
+          edgeOne.y,
+          edgeTwo.y,
+          normal.y,
+          a.y,
+          edgeOne.z,
+          edgeTwo.z,
+          normal.z,
+          a.z,
+          0,
+          0,
+          0,
+          1
+        ),
+      ]
+    })
+  }, [gapMeters])
+
+  useEffect(() => () => geometry.dispose(), [geometry])
+
+  useLayoutEffect(() => {
+    const mesh = meshRef.current
+
+    if (!mesh) {
+      return
+    }
+
+    panelMatrices.forEach((matrix, index) => {
+      mesh.setMatrixAt(index, matrix)
+    })
+
+    mesh.count = panelMatrices.length
+    mesh.instanceMatrix.needsUpdate = true
+    mesh.computeBoundingSphere()
+  }, [panelMatrices])
 
   return (
-    <mesh
-      geometry={geometry}
+    <instancedMesh
+      ref={meshRef}
+      args={[geometry, material, panelMatrices.length]}
       castShadow
       receiveShadow
       renderOrder={1}
-    >
-      <meshStandardMaterial
-        color={color}
-        side={THREE.DoubleSide}
-        roughness={0.92}
-        metalness={0}
-        depthWrite
-      />
-    </mesh>
+    />
   )
 }
 
@@ -163,12 +220,14 @@ function VertexLabels() {
 
 interface DmxCanFixtureProps {
   fixture: DmxFixture
-  renderMode: "real" | "fake"
+  renderMode: DmxRenderMode
   color: string
   realIntensity: number
-  fakeIntensity: number
   beamAngleDeg: number
   castShadows: boolean
+  bodyMaterial: THREE.Material
+  lensMaterial: THREE.Material
+  fakeBeamMaterial: THREE.Material
 }
 
 function DmxCanFixture({
@@ -176,18 +235,18 @@ function DmxCanFixture({
   renderMode,
   color,
   realIntensity,
-  fakeIntensity,
   beamAngleDeg,
   castShadows,
+  bodyMaterial,
+  lensMaterial,
+  fakeBeamMaterial,
 }: DmxCanFixtureProps) {
   const lightRef = useRef<THREE.SpotLight>(null)
   const targetRef = useRef<THREE.Object3D>(null)
   const direction = useMemo(() => getFixtureBeamDirection(fixture), [fixture])
   const halfAngleRadians = getBeamHalfAngleRadians(beamAngleDeg)
   const lensPosition = new THREE.Vector3(...fixture.position)
-  const bodyPosition = lensPosition
-    .clone()
-    .addScaledVector(direction, -0.16)
+  const bodyPosition = lensPosition.clone().addScaledVector(direction, -0.16)
   const lensCenter = lensPosition.clone().addScaledVector(direction, 0.03)
   const bodyQuaternion = new THREE.Quaternion().setFromUnitVectors(
     Y_AXIS,
@@ -211,28 +270,18 @@ function DmxCanFixture({
         receiveShadow
         position={bodyPosition}
         quaternion={bodyQuaternion}
+        material={bodyMaterial}
       >
         <cylinderGeometry args={[0.125, 0.125, 0.35, 20]} />
-        <meshStandardMaterial
-          color="#111111"
-          roughness={0.62}
-          metalness={0.72}
-        />
       </mesh>
       <mesh
         castShadow
         receiveShadow
         position={lensCenter}
         quaternion={bodyQuaternion}
+        material={lensMaterial}
       >
         <cylinderGeometry args={[0.095, 0.095, 0.03, 20]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={renderMode === "real" ? 0.45 : 0.9}
-          roughness={0.24}
-          metalness={0.12}
-        />
       </mesh>
       {renderMode === "real" && (
         <>
@@ -250,8 +299,8 @@ function DmxCanFixture({
             distance={REAL_BEAM_DISTANCE_METERS}
             decay={1.25}
             castShadow={castShadows}
-            shadow-mapSize-width={1024}
-            shadow-mapSize-height={1024}
+            shadow-mapSize-width={512}
+            shadow-mapSize-height={512}
             shadow-bias={-0.0002}
           />
         </>
@@ -266,6 +315,7 @@ function DmxCanFixture({
             direction
           )}
           renderOrder={2}
+          material={fakeBeamMaterial}
         >
           <coneGeometry
             args={[
@@ -276,21 +326,42 @@ function DmxCanFixture({
               true,
             ]}
           />
-          <meshStandardMaterial
-            color={color}
-            emissive={color}
-            emissiveIntensity={THREE.MathUtils.clamp(fakeIntensity * 2, 0, 1.2)}
-            transparent
-            opacity={THREE.MathUtils.clamp(fakeIntensity, 0, 0.65)}
-            side={THREE.DoubleSide}
-            depthWrite={false}
-            roughness={1}
-            metalness={0}
-          />
         </mesh>
       )}
     </group>
   )
+}
+
+interface SurfaceMaterialOptions {
+  color: string
+  roughness: number
+  metalness: number
+  emissive?: string
+  emissiveIntensity?: number
+  opacity?: number
+  transparent?: boolean
+  side?: THREE.Side
+  depthWrite?: boolean
+}
+
+function createSurfaceMaterial({
+  color,
+  emissive = "#000000",
+  emissiveIntensity = 0,
+  opacity = 1,
+  transparent = false,
+  side = THREE.FrontSide,
+  depthWrite = true,
+}: SurfaceMaterialOptions) {
+  return new THREE.MeshLambertMaterial({
+    color,
+    emissive,
+    emissiveIntensity,
+    opacity,
+    transparent,
+    side,
+    depthWrite,
+  })
 }
 
 function Scene() {
@@ -311,34 +382,104 @@ function Scene() {
     dmxCastShadows,
   } = useAbyssStore()
   const radius = Math.max(tubeDiameterMeters / 2, 0.001)
+  const tubeMaterial = useMemo(
+    () =>
+      createSurfaceMaterial({
+        color: tubeColor,
+        roughness: 0.74,
+        metalness: 0.45,
+        transparent: tubeOpacity < 1,
+        opacity: tubeOpacity,
+      }),
+    [tubeColor, tubeOpacity]
+  )
+  const panelMaterial = useMemo(
+    () =>
+      createSurfaceMaterial({
+        color: panelColor,
+        side: THREE.DoubleSide,
+        roughness: 0.92,
+        metalness: 0,
+        depthWrite: true,
+      }),
+    [panelColor]
+  )
+  const bodyMaterial = useMemo(
+    () =>
+      createSurfaceMaterial({
+        color: "#111111",
+        roughness: 0.62,
+        metalness: 0.72,
+      }),
+    []
+  )
+  const lensMaterial = useMemo(
+    () =>
+      createSurfaceMaterial({
+        color: dmxColor,
+        emissive: dmxColor,
+        emissiveIntensity: dmxRenderMode === "real" ? 0.45 : 0.9,
+        roughness: 0.24,
+        metalness: 0.12,
+      }),
+    [dmxColor, dmxRenderMode]
+  )
+  const fakeBeamMaterial = useMemo(
+    () =>
+      createSurfaceMaterial({
+        color: dmxColor,
+        emissive: dmxColor,
+        emissiveIntensity: THREE.MathUtils.clamp(dmxFakeIntensity * 2, 0, 1.2),
+        transparent: true,
+        opacity: THREE.MathUtils.clamp(dmxFakeIntensity, 0, 0.65),
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        roughness: 1,
+        metalness: 0,
+      }),
+    [dmxColor, dmxFakeIntensity]
+  )
+
+  useEffect(() => () => tubeMaterial.dispose(), [tubeMaterial])
+  useEffect(() => () => panelMaterial.dispose(), [panelMaterial])
+  useEffect(() => () => bodyMaterial.dispose(), [bodyMaterial])
+  useEffect(() => () => lensMaterial.dispose(), [lensMaterial])
+  useEffect(() => () => fakeBeamMaterial.dispose(), [fakeBeamMaterial])
 
   return (
     <>
-      <color
-        attach="background"
-        args={["#1f1f1f"]}
-      />
-      <ambientLight intensity={1.7} />
+      <ambientLight intensity={1} />
       <directionalLight
-        castShadow
         position={[6, 16, 10]}
-        intensity={2.1}
-        shadow-mapSize={2048}
+        intensity={3.1}
       />
       <directionalLight
         position={[-8, 8, -12]}
-        intensity={0.7}
+        intensity={1.7}
       />
+      <Clouds material={THREE.MeshBasicMaterial}>
+        <Cloud
+          segments={40}
+          bounds={[10, 2, 2]}
+          volume={1}
+          color="red"
+          fade={40}
+        />
+        <Cloud
+          seed={2}
+          scale={2}
+          volume={1}
+          color="darkred"
+          fade={50}
+        />
+      </Clouds>
       <group>
-        {showPanels &&
-          STRUCTURE_PANELS.map((panel) => (
-            <PanelMesh
-              key={panel.id}
-              panel={panel}
-              color={panelColor}
-              gapMeters={panelGapMeters}
-            />
-          ))}
+        {showPanels && (
+          <PanelLayer
+            gapMeters={panelGapMeters}
+            material={panelMaterial}
+          />
+        )}
         {showDmxFixtures &&
           DMX_FIXTURES.map((fixture) => (
             <DmxCanFixture
@@ -347,21 +488,17 @@ function Scene() {
               renderMode={dmxRenderMode}
               color={dmxColor}
               realIntensity={dmxRealIntensity}
-              fakeIntensity={dmxFakeIntensity}
               beamAngleDeg={dmxBeamAngleDeg}
               castShadows={dmxCastShadows}
+              bodyMaterial={bodyMaterial}
+              lensMaterial={lensMaterial}
+              fakeBeamMaterial={fakeBeamMaterial}
             />
           ))}
-        {STRUCTURE_EDGES_RESOLVED.map((edge) => (
-          <TubeEdge
-            key={edge.id}
-            start={edge.verticesMeters[0].position}
-            end={edge.verticesMeters[1].position}
-            radius={radius}
-            color={tubeColor}
-            opacity={tubeOpacity}
-          />
-        ))}
+        <TubeFrame
+          radius={radius}
+          material={tubeMaterial}
+        />
         {showLabels && <VertexLabels />}
       </group>
     </>

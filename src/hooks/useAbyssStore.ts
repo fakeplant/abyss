@@ -49,11 +49,11 @@ const DEFAULT_STATE: AbyssViewState = {
   panelGapMeters: 0.04,
   showDmxFixtures: true,
   dmxRenderMode: "real",
-  dmxColor: "#ffdca8",
-  dmxRealIntensity: 12,
+  dmxColor: "#ff0000",
+  dmxRealIntensity: 1000,
   dmxFakeIntensity: 0.24,
   dmxBeamAngleDeg: 24,
-  dmxCastShadows: true,
+  dmxCastShadows: false,
 }
 
 let currentState = DEFAULT_STATE

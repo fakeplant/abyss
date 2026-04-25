@@ -24,7 +24,7 @@
     "clsx": "^2.1.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "three": "^0.163.0"
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@tanstack/react-router-devtools": "^1.120.15",

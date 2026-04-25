@@ -3,3 +3,34 @@
   overflow: hidden;
   background: var(--mantine-color-dark-7);
 }
+
+.item {
+  border: 1px solid var(--mantine-color-dark-5);
+  border-radius: 6px;
+  background: var(--mantine-color-dark-6);
+  overflow: hidden;
+}
+
+.item + .item {
+  margin-top: 8px;
+}
+
+.control {
+  min-height: 40px;
+  padding: 0 10px;
+  color: var(--mantine-color-gray-2);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+}
+
+.control:hover {
+  background: var(--mantine-color-dark-5);
+}
+
+.content {
+  padding: 4px 10px 12px;
+}
+
+.chevron {
+  color: var(--mantine-color-gray-5);
+}

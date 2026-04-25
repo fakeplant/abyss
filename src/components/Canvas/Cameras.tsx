@@ -49,7 +49,7 @@ function Cameras() {
       <OrthographicCamera
         makeDefault
         near={-1000}
-        far={1000}
+        far={75}
         zoom={24}
       />
       <OrbitControls

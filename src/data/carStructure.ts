@@ -27,21 +27,42 @@ export interface StructurePanel {
 }
 
 export type DmxFixtureType = "single-color-can"
+export type DmxFixtureMountKind = "edge" | "free"
+export type DmxFixturePlacement = "outside" | "inside"
+export type DmxFixtureAim = "inward" | "outward"
 
 export interface DmxFixtureRotation {
   xDeg: number
   yDeg: number
 }
 
-interface DmxFixtureMountConfig {
+interface DmxFixtureBaseConfig {
   id: string
   type: DmxFixtureType
-  mountEdgeId: string
   rotation: DmxFixtureRotation
   color: string
 }
 
-export interface DmxFixture extends DmxFixtureMountConfig {
+interface EdgeMountedDmxFixtureConfig extends DmxFixtureBaseConfig {
+  mount: "edge"
+  mountEdgeId: string
+  placement: DmxFixturePlacement
+  aim: DmxFixtureAim
+}
+
+interface FreeDmxFixtureConfig extends DmxFixtureBaseConfig {
+  mount: "free"
+  position: readonly [number, number, number]
+  baseTarget: readonly [number, number, number]
+}
+
+type DmxFixtureConfig = EdgeMountedDmxFixtureConfig | FreeDmxFixtureConfig
+
+export interface DmxFixture extends DmxFixtureBaseConfig {
+  mount: DmxFixtureMountKind
+  mountEdgeId?: string
+  placement?: DmxFixturePlacement
+  aim?: DmxFixtureAim
   position: readonly [number, number, number]
   baseTarget: readonly [number, number, number]
 }
@@ -488,62 +509,166 @@ const DMX_FIXTURE_MOUNTS = [
   {
     id: "dmx-can-01",
     type: "single-color-can",
+    mount: "edge",
     mountEdgeId: "47-50",
+    placement: "outside",
+    aim: "inward",
     rotation: { xDeg: -8, yDeg: -18 },
     color: "#ffdca8",
   },
   {
     id: "dmx-can-02",
     type: "single-color-can",
+    mount: "edge",
     mountEdgeId: "56-58",
+    placement: "outside",
+    aim: "inward",
     rotation: { xDeg: -10, yDeg: 18 },
     color: "#ffdca8",
   },
   {
     id: "dmx-can-03",
     type: "single-color-can",
+    mount: "edge",
     mountEdgeId: "69-82",
+    placement: "outside",
+    aim: "outward",
     rotation: { xDeg: 6, yDeg: 12 },
     color: "#c7e7ff",
   },
   {
     id: "dmx-can-04",
     type: "single-color-can",
+    mount: "edge",
     mountEdgeId: "73-92",
+    placement: "outside",
+    aim: "outward",
     rotation: { xDeg: 6, yDeg: -12 },
     color: "#c7e7ff",
   },
   {
     id: "dmx-can-05",
     type: "single-color-can",
+    mount: "edge",
     mountEdgeId: "83-114",
+    placement: "outside",
+    aim: "outward",
     rotation: { xDeg: -15, yDeg: -8 },
     color: "#fff1c9",
   },
   {
     id: "dmx-can-06",
     type: "single-color-can",
+    mount: "edge",
     mountEdgeId: "88-110",
+    placement: "outside",
+    aim: "outward",
     rotation: { xDeg: -18, yDeg: 10 },
     color: "#fff1c9",
   },
   {
     id: "dmx-can-07",
     type: "single-color-can",
+    mount: "edge",
     mountEdgeId: "91-128",
+    placement: "outside",
+    aim: "outward",
     rotation: { xDeg: 10, yDeg: -22 },
     color: "#ffd2f0",
   },
   {
     id: "dmx-can-08",
     type: "single-color-can",
+    mount: "edge",
     mountEdgeId: "112-124",
+    placement: "outside",
+    aim: "outward",
     rotation: { xDeg: -12, yDeg: 22 },
     color: "#ffd2f0",
   },
-] as const satisfies readonly DmxFixtureMountConfig[]
+  {
+    id: "dmx-can-inside-01",
+    type: "single-color-can",
+    mount: "edge",
+    mountEdgeId: "45-46",
+    placement: "inside",
+    aim: "outward",
+    rotation: { xDeg: -6, yDeg: -8 },
+    color: "#fff6d8",
+  },
+  {
+    id: "dmx-can-inside-02",
+    type: "single-color-can",
+    mount: "edge",
+    mountEdgeId: "82-92",
+    placement: "inside",
+    aim: "outward",
+    rotation: { xDeg: -4, yDeg: 10 },
+    color: "#fff6d8",
+  },
+  {
+    id: "dmx-can-inside-03",
+    type: "single-color-can",
+    mount: "edge",
+    mountEdgeId: "110-111",
+    placement: "inside",
+    aim: "outward",
+    rotation: { xDeg: -8, yDeg: -12 },
+    color: "#c7e7ff",
+  },
+  {
+    id: "dmx-can-inside-04",
+    type: "single-color-can",
+    mount: "edge",
+    mountEdgeId: "36-37",
+    placement: "inside",
+    aim: "outward",
+    rotation: { xDeg: 8, yDeg: 16 },
+    color: "#ffd2f0",
+  },
+  {
+    id: "dmx-can-free-01",
+    type: "single-color-can",
+    mount: "free",
+    position: [0, 5.35, -1.2],
+    baseTarget: [0, 7.6, 2.4],
+    rotation: { xDeg: -8, yDeg: 0 },
+    color: "#fff6d8",
+  },
+  {
+    id: "dmx-can-free-02",
+    type: "single-color-can",
+    mount: "free",
+    position: [-0.72, 5.7, 1.2],
+    baseTarget: [-1.8, 8.4, 4.2],
+    rotation: { xDeg: -10, yDeg: -12 },
+    color: "#c7e7ff",
+  },
+  {
+    id: "dmx-can-free-03",
+    type: "single-color-can",
+    mount: "free",
+    position: [0.72, 5.7, 1.2],
+    baseTarget: [1.8, 8.4, 4.2],
+    rotation: { xDeg: -10, yDeg: 12 },
+    color: "#c7e7ff",
+  },
+  {
+    id: "dmx-can-free-04",
+    type: "single-color-can",
+    mount: "free",
+    position: [0, 4.8, -4.2],
+    baseTarget: [0, 6.9, -7.2],
+    rotation: { xDeg: 6, yDeg: 0 },
+    color: "#ffd2f0",
+  },
+] as const satisfies readonly DmxFixtureConfig[]
 
-function resolveDmxFixture(config: DmxFixtureMountConfig): DmxFixture {
+function resolveDmxFixture(config: DmxFixtureConfig): DmxFixture {
+  if (config.mount === "free") {
+    return config
+  }
+
   const mountEdge = STRUCTURE_EDGE_MAP.get(config.mountEdgeId)
 
   if (!mountEdge) {
@@ -559,15 +684,28 @@ function resolveDmxFixture(config: DmxFixtureMountConfig): DmxFixture {
     outward.set(1, 0, 0)
   }
 
+  const outwardDirection = outward.normalize()
   const position = midpoint
     .clone()
-    .add(outward.normalize().multiplyScalar(DMX_FIXTURE_MOUNT_OFFSET_METERS))
+    .add(
+      outwardDirection
+        .clone()
+        .multiplyScalar(
+          config.placement === "inside"
+            ? -DMX_FIXTURE_MOUNT_OFFSET_METERS
+            : DMX_FIXTURE_MOUNT_OFFSET_METERS
+        )
+    )
     .add(new THREE.Vector3(0, DMX_FIXTURE_UP_OFFSET_METERS, 0))
+  const baseTarget =
+    config.aim === "outward"
+      ? position.clone().add(outwardDirection.clone().multiplyScalar(6))
+      : STRUCTURE_CENTER.clone()
 
   return {
     ...config,
     position: position.toArray(),
-    baseTarget: STRUCTURE_CENTER.toArray(),
+    baseTarget: baseTarget.toArray(),
   }
 }
 
@@ -751,10 +889,18 @@ export function validateStructureData() {
   }
 
   for (const fixture of DMX_FIXTURES) {
-    if (!STRUCTURE_EDGE_KEYS.has(fixture.mountEdgeId)) {
+    if (
+      fixture.mount === "edge" &&
+      fixture.mountEdgeId &&
+      !STRUCTURE_EDGE_KEYS.has(fixture.mountEdgeId)
+    ) {
       errors.push(
         `DMX fixture ${fixture.id} references missing edge ${fixture.mountEdgeId}`
       )
+    }
+
+    if (fixture.mount === "edge" && !fixture.mountEdgeId) {
+      errors.push(`DMX fixture ${fixture.id} is missing a mount edge`)
     }
 
     if (
@@ -765,8 +911,8 @@ export function validateStructureData() {
     }
   }
 
-  if (DMX_FIXTURES.length !== 8) {
-    errors.push(`Expected 8 DMX fixtures, found ${DMX_FIXTURES.length}`)
+  if (DMX_FIXTURES.length !== 16) {
+    errors.push(`Expected 16 DMX fixtures, found ${DMX_FIXTURES.length}`)
   }
 
   return {
