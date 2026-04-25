@@ -13,7 +13,7 @@ export const Route = createRootRoute({
     <MantineProvider
       theme={theme}
       cssVariablesResolver={resolver}
-      forceColorScheme="light"
+      forceColorScheme="dark"
     >
       <Notifications />
       <Layout>

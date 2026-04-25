@@ -6,6 +6,9 @@ export interface AbyssViewState {
   tubeDiameterMeters: number
   tubeColor: string
   tubeOpacity: number
+  showPanels: boolean
+  panelColor: string
+  panelGapMeters: number
 }
 
 export interface AbyssViewActions {
@@ -14,6 +17,9 @@ export interface AbyssViewActions {
   setTubeDiameterMeters: (diameter: number) => void
   setTubeColor: (color: string) => void
   setTubeOpacity: (opacity: number) => void
+  setShowPanels: (show: boolean) => void
+  setPanelColor: (color: string) => void
+  setPanelGapMeters: (gap: number) => void
 }
 
 const DEFAULT_STATE: AbyssViewState = {
@@ -22,6 +28,9 @@ const DEFAULT_STATE: AbyssViewState = {
   tubeDiameterMeters: 0.0508,
   tubeColor: "#050505",
   tubeOpacity: 1,
+  showPanels: true,
+  panelColor: "#2f3030",
+  panelGapMeters: 0.04,
 }
 
 let currentState = DEFAULT_STATE
@@ -50,5 +59,8 @@ export function useAbyssStore(): AbyssViewState & AbyssViewActions {
       setState({ tubeDiameterMeters }),
     setTubeColor: (tubeColor) => setState({ tubeColor }),
     setTubeOpacity: (tubeOpacity) => setState({ tubeOpacity }),
+    setShowPanels: (showPanels) => setState({ showPanels }),
+    setPanelColor: (panelColor) => setState({ panelColor }),
+    setPanelGapMeters: (panelGapMeters) => setState({ panelGapMeters }),
   }
 }

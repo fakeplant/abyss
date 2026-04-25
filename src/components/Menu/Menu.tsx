@@ -12,9 +12,11 @@ import {
   IconCircleLetterI,
   IconDimensions,
   IconEye,
+  IconTriangle,
 } from "@tabler/icons-react"
 import {
   STRUCTURE_EDGES,
+  STRUCTURE_PANELS,
   STRUCTURE_SIZE,
   STRUCTURE_VERTICES,
   validateStructureData,
@@ -28,10 +30,16 @@ function Menu() {
     tubeDiameterMeters,
     tubeColor,
     tubeOpacity,
+    showPanels,
+    panelColor,
+    panelGapMeters,
     setShowLabels,
     setTubeDiameterMeters,
     setTubeColor,
     setTubeOpacity,
+    setShowPanels,
+    setPanelColor,
+    setPanelGapMeters,
   } = useAbyssStore()
 
   const validation = validateStructureData()
@@ -41,6 +49,7 @@ function Menu() {
       <Stack
         gap="lg"
         p="md"
+        mt="60px"
       >
         <Box>
           <Text
@@ -79,6 +88,49 @@ function Menu() {
             onChange={(event) => setShowLabels(event.currentTarget.checked)}
             size="sm"
           />
+        </Box>
+
+        <Box>
+          <Group
+            gap="xs"
+            mb="xs"
+          >
+            <IconTriangle size={16} />
+            <Text
+              size="sm"
+              fw={600}
+            >
+              Panels
+            </Text>
+          </Group>
+          <Stack gap="sm">
+            <Switch
+              label={`${STRUCTURE_PANELS.length} lower panels`}
+              checked={showPanels}
+              onChange={(event) => setShowPanels(event.currentTarget.checked)}
+              size="sm"
+            />
+            <ColorInput
+              label="Texture color"
+              value={panelColor}
+              onChange={setPanelColor}
+              swatches={["#2f6f7f", "#455b4a", "#7f5f3f", "#f3e7cf"]}
+              size="xs"
+            />
+            <NumberInput
+              label="Edge gap"
+              suffix=" m"
+              min={0}
+              max={0.3}
+              step={0.01}
+              decimalScale={3}
+              value={panelGapMeters}
+              onChange={(value) =>
+                setPanelGapMeters(typeof value === "number" ? value : 0.04)
+              }
+              size="xs"
+            />
+          </Stack>
         </Box>
 
         <Box>

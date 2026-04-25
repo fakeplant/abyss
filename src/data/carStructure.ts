@@ -9,8 +9,7 @@ export interface StructureVertex {
 
 export interface StructureEdge {
   id: string
-  start: VertexId
-  end: VertexId
+  vertices: readonly [VertexId, VertexId]
 }
 
 export interface MeterVertex extends StructureVertex {
@@ -18,9 +17,13 @@ export interface MeterVertex extends StructureVertex {
 }
 
 export interface ResolvedEdge extends StructureEdge {
-  startVertex: MeterVertex
-  endVertex: MeterVertex
+  verticesMeters: readonly [MeterVertex, MeterVertex]
   lengthMeters: number
+}
+
+export interface StructurePanel {
+  id: string
+  vertices: readonly [VertexId, VertexId, VertexId]
 }
 
 export const MICRONS_PER_METER = 1_000_000
@@ -108,212 +111,279 @@ export const STRUCTURE_VERTICES = [
 ] as const satisfies readonly StructureVertex[]
 
 export const STRUCTURE_EDGES = [
-  { id: "9-12", start: 9, end: 12 },
-  { id: "9-83", start: 9, end: 83 },
-  { id: "9-114", start: 9, end: 114 },
-  { id: "9-116", start: 9, end: 116 },
-  { id: "10-11", start: 10, end: 11 },
-  { id: "10-100", start: 10, end: 100 },
-  { id: "10-115", start: 10, end: 115 },
-  { id: "10-117", start: 10, end: 117 },
-  { id: "11-98", start: 11, end: 98 },
-  { id: "11-100", start: 11, end: 100 },
-  { id: "12-83", start: 12, end: 83 },
-  { id: "12-85", start: 12, end: 85 },
-  { id: "25-27", start: 25, end: 27 },
-  { id: "25-83", start: 25, end: 83 },
-  { id: "25-84", start: 25, end: 84 },
-  { id: "25-88", start: 25, end: 88 },
-  { id: "25-110", start: 25, end: 110 },
-  { id: "25-114", start: 25, end: 114 },
-  { id: "26-28", start: 26, end: 28 },
-  { id: "26-99", start: 26, end: 99 },
-  { id: "26-100", start: 26, end: 100 },
-  { id: "26-102", start: 26, end: 102 },
-  { id: "26-111", start: 26, end: 111 },
-  { id: "26-115", start: 26, end: 115 },
-  { id: "27-109", start: 27, end: 109 },
-  { id: "27-110", start: 27, end: 110 },
-  { id: "27-112", start: 27, end: 112 },
-  { id: "27-114", start: 27, end: 114 },
-  { id: "28-109", start: 28, end: 109 },
-  { id: "28-111", start: 28, end: 111 },
-  { id: "28-113", start: 28, end: 113 },
-  { id: "28-115", start: 28, end: 115 },
-  { id: "30-31", start: 30, end: 31 },
-  { id: "30-33", start: 30, end: 33 },
-  { id: "30-38", start: 30, end: 38 },
-  { id: "30-42", start: 30, end: 42 },
-  { id: "30-118", start: 30, end: 118 },
-  { id: "31-33", start: 31, end: 33 },
-  { id: "31-39", start: 31, end: 39 },
-  { id: "31-118", start: 31, end: 118 },
-  { id: "31-119", start: 31, end: 119 },
-  { id: "31-121", start: 31, end: 121 },
-  { id: "33-37", start: 33, end: 37 },
-  { id: "33-38", start: 33, end: 38 },
-  { id: "33-39", start: 33, end: 39 },
-  { id: "36-37", start: 36, end: 37 },
-  { id: "36-38", start: 36, end: 38 },
-  { id: "36-43", start: 36, end: 43 },
-  { id: "36-56", start: 36, end: 56 },
-  { id: "36-57", start: 36, end: 57 },
-  { id: "36-123", start: 36, end: 123 },
-  { id: "37-39", start: 37, end: 39 },
-  { id: "37-44", start: 37, end: 44 },
-  { id: "37-50", start: 37, end: 50 },
-  { id: "37-123", start: 37, end: 123 },
-  { id: "38-42", start: 38, end: 42 },
-  { id: "38-43", start: 38, end: 43 },
-  { id: "39-44", start: 39, end: 44 },
-  { id: "39-101", start: 39, end: 101 },
-  { id: "39-121", start: 39, end: 121 },
-  { id: "42-43", start: 42, end: 43 },
-  { id: "42-118", start: 42, end: 118 },
-  { id: "42-119", start: 42, end: 119 },
-  { id: "42-120", start: 42, end: 120 },
-  { id: "43-57", start: 43, end: 57 },
-  { id: "43-86", start: 43, end: 86 },
-  { id: "43-120", start: 43, end: 120 },
-  { id: "44-47", start: 44, end: 47 },
-  { id: "44-50", start: 44, end: 50 },
-  { id: "44-101", start: 44, end: 101 },
-  { id: "45-46", start: 45, end: 46 },
-  { id: "45-47", start: 45, end: 47 },
-  { id: "45-50", start: 45, end: 50 },
-  { id: "45-122", start: 45, end: 122 },
-  { id: "45-123", start: 45, end: 123 },
-  { id: "46-56", start: 46, end: 56 },
-  { id: "46-58", start: 46, end: 58 },
-  { id: "46-122", start: 46, end: 122 },
-  { id: "46-123", start: 46, end: 123 },
-  { id: "47-50", start: 47, end: 50 },
-  { id: "47-51", start: 47, end: 51 },
-  { id: "47-54", start: 47, end: 54 },
-  { id: "47-90", start: 47, end: 90 },
-  { id: "47-122", start: 47, end: 122 },
-  { id: "50-123", start: 50, end: 123 },
-  { id: "51-54", start: 51, end: 54 },
-  { id: "51-69", start: 51, end: 69 },
-  { id: "51-82", start: 51, end: 82 },
-  { id: "51-90", start: 51, end: 90 },
-  { id: "52-55", start: 52, end: 55 },
-  { id: "52-58", start: 52, end: 58 },
-  { id: "52-75", start: 52, end: 75 },
-  { id: "52-92", start: 52, end: 92 },
-  { id: "52-96", start: 52, end: 96 },
-  { id: "54-82", start: 54, end: 82 },
-  { id: "54-122", start: 54, end: 122 },
-  { id: "55-58", start: 55, end: 58 },
-  { id: "55-92", start: 55, end: 92 },
-  { id: "55-122", start: 55, end: 122 },
-  { id: "56-57", start: 56, end: 57 },
-  { id: "56-58", start: 56, end: 58 },
-  { id: "56-123", start: 56, end: 123 },
-  { id: "57-58", start: 57, end: 58 },
-  { id: "57-86", start: 57, end: 86 },
-  { id: "58-96", start: 58, end: 96 },
-  { id: "58-122", start: 58, end: 122 },
-  { id: "60-65", start: 60, end: 65 },
-  { id: "60-93", start: 60, end: 93 },
-  { id: "60-125", start: 60, end: 125 },
-  { id: "60-127", start: 60, end: 127 },
-  { id: "65-67", start: 65, end: 67 },
-  { id: "65-93", start: 65, end: 93 },
-  { id: "67-90", start: 67, end: 90 },
-  { id: "67-93", start: 67, end: 93 },
-  { id: "69-70", start: 69, end: 70 },
-  { id: "69-82", start: 69, end: 82 },
-  { id: "69-90", start: 69, end: 90 },
-  { id: "69-93", start: 69, end: 93 },
-  { id: "69-127", start: 69, end: 127 },
-  { id: "70-81", start: 70, end: 81 },
-  { id: "70-82", start: 70, end: 82 },
-  { id: "70-89", start: 70, end: 89 },
-  { id: "70-127", start: 70, end: 127 },
-  { id: "73-75", start: 73, end: 75 },
-  { id: "73-81", start: 73, end: 81 },
-  { id: "73-91", start: 73, end: 91 },
-  { id: "73-92", start: 73, end: 92 },
-  { id: "73-128", start: 73, end: 128 },
-  { id: "75-92", start: 75, end: 92 },
-  { id: "75-96", start: 75, end: 96 },
-  { id: "75-97", start: 75, end: 97 },
-  { id: "75-128", start: 75, end: 128 },
-  { id: "78-79", start: 78, end: 79 },
-  { id: "78-97", start: 78, end: 97 },
-  { id: "78-128", start: 78, end: 128 },
-  { id: "78-129", start: 78, end: 129 },
-  { id: "79-80", start: 79, end: 80 },
-  { id: "79-97", start: 79, end: 97 },
-  { id: "80-96", start: 80, end: 96 },
-  { id: "80-97", start: 80, end: 97 },
-  { id: "81-82", start: 81, end: 82 },
-  { id: "81-89", start: 81, end: 89 },
-  { id: "81-91", start: 81, end: 91 },
-  { id: "81-92", start: 81, end: 92 },
-  { id: "82-92", start: 82, end: 92 },
-  { id: "82-122", start: 82, end: 122 },
-  { id: "83-84", start: 83, end: 84 },
-  { id: "83-85", start: 83, end: 85 },
-  { id: "83-114", start: 83, end: 114 },
-  { id: "84-85", start: 84, end: 85 },
-  { id: "84-86", start: 84, end: 86 },
-  { id: "84-88", start: 84, end: 88 },
-  { id: "86-88", start: 86, end: 88 },
-  { id: "86-120", start: 86, end: 120 },
-  { id: "88-110", start: 88, end: 110 },
-  { id: "88-119", start: 88, end: 119 },
-  { id: "88-120", start: 88, end: 120 },
-  { id: "89-91", start: 89, end: 91 },
-  { id: "89-125", start: 89, end: 125 },
-  { id: "89-126", start: 89, end: 126 },
-  { id: "89-127", start: 89, end: 127 },
-  { id: "90-93", start: 90, end: 93 },
-  { id: "91-126", start: 91, end: 126 },
-  { id: "91-128", start: 91, end: 128 },
-  { id: "91-129", start: 91, end: 129 },
-  { id: "92-122", start: 92, end: 122 },
-  { id: "93-127", start: 93, end: 127 },
-  { id: "96-97", start: 96, end: 97 },
-  { id: "97-128", start: 97, end: 128 },
-  { id: "98-99", start: 98, end: 99 },
-  { id: "98-100", start: 98, end: 100 },
-  { id: "99-100", start: 99, end: 100 },
-  { id: "99-101", start: 99, end: 101 },
-  { id: "99-102", start: 99, end: 102 },
-  { id: "100-115", start: 100, end: 115 },
-  { id: "101-102", start: 101, end: 102 },
-  { id: "101-121", start: 101, end: 121 },
-  { id: "102-111", start: 102, end: 111 },
-  { id: "102-119", start: 102, end: 119 },
-  { id: "102-121", start: 102, end: 121 },
-  { id: "109-110", start: 109, end: 110 },
-  { id: "109-111", start: 109, end: 111 },
-  { id: "109-112", start: 109, end: 112 },
-  { id: "109-113", start: 109, end: 113 },
-  { id: "110-111", start: 110, end: 111 },
-  { id: "110-119", start: 110, end: 119 },
-  { id: "111-119", start: 111, end: 119 },
-  { id: "112-113", start: 112, end: 113 },
-  { id: "112-114", start: 112, end: 114 },
-  { id: "112-116", start: 112, end: 116 },
-  { id: "112-124", start: 112, end: 124 },
-  { id: "113-115", start: 113, end: 115 },
-  { id: "113-117", start: 113, end: 117 },
-  { id: "113-124", start: 113, end: 124 },
-  { id: "114-116", start: 114, end: 116 },
-  { id: "115-117", start: 115, end: 117 },
-  { id: "116-124", start: 116, end: 124 },
-  { id: "117-124", start: 117, end: 124 },
-  { id: "118-119", start: 118, end: 119 },
-  { id: "119-120", start: 119, end: 120 },
-  { id: "119-121", start: 119, end: 121 },
-  { id: "125-126", start: 125, end: 126 },
-  { id: "125-127", start: 125, end: 127 },
-  { id: "126-129", start: 126, end: 129 },
-  { id: "128-129", start: 128, end: 129 },
+  { id: "9-12", vertices: [9, 12] },
+  { id: "9-83", vertices: [9, 83] },
+  { id: "9-114", vertices: [9, 114] },
+  { id: "9-116", vertices: [9, 116] },
+  { id: "10-11", vertices: [10, 11] },
+  { id: "10-100", vertices: [10, 100] },
+  { id: "10-115", vertices: [10, 115] },
+  { id: "10-117", vertices: [10, 117] },
+  { id: "11-98", vertices: [11, 98] },
+  { id: "11-100", vertices: [11, 100] },
+  { id: "12-83", vertices: [12, 83] },
+  { id: "12-85", vertices: [12, 85] },
+  { id: "25-27", vertices: [25, 27] },
+  { id: "25-83", vertices: [25, 83] },
+  { id: "25-84", vertices: [25, 84] },
+  { id: "25-88", vertices: [25, 88] },
+  { id: "25-110", vertices: [25, 110] },
+  { id: "25-114", vertices: [25, 114] },
+  { id: "26-28", vertices: [26, 28] },
+  { id: "26-99", vertices: [26, 99] },
+  { id: "26-100", vertices: [26, 100] },
+  { id: "26-102", vertices: [26, 102] },
+  { id: "26-111", vertices: [26, 111] },
+  { id: "26-115", vertices: [26, 115] },
+  { id: "27-109", vertices: [27, 109] },
+  { id: "27-110", vertices: [27, 110] },
+  { id: "27-112", vertices: [27, 112] },
+  { id: "27-114", vertices: [27, 114] },
+  { id: "28-109", vertices: [28, 109] },
+  { id: "28-111", vertices: [28, 111] },
+  { id: "28-113", vertices: [28, 113] },
+  { id: "28-115", vertices: [28, 115] },
+  { id: "30-31", vertices: [30, 31] },
+  { id: "30-33", vertices: [30, 33] },
+  { id: "30-38", vertices: [30, 38] },
+  { id: "30-42", vertices: [30, 42] },
+  { id: "30-118", vertices: [30, 118] },
+  { id: "31-33", vertices: [31, 33] },
+  { id: "31-39", vertices: [31, 39] },
+  { id: "31-118", vertices: [31, 118] },
+  { id: "31-119", vertices: [31, 119] },
+  { id: "31-121", vertices: [31, 121] },
+  { id: "33-37", vertices: [33, 37] },
+  { id: "33-38", vertices: [33, 38] },
+  { id: "33-39", vertices: [33, 39] },
+  { id: "36-37", vertices: [36, 37] },
+  { id: "36-38", vertices: [36, 38] },
+  { id: "36-43", vertices: [36, 43] },
+  { id: "36-56", vertices: [36, 56] },
+  { id: "36-57", vertices: [36, 57] },
+  { id: "36-123", vertices: [36, 123] },
+  { id: "37-39", vertices: [37, 39] },
+  { id: "37-44", vertices: [37, 44] },
+  { id: "37-50", vertices: [37, 50] },
+  { id: "37-123", vertices: [37, 123] },
+  { id: "38-42", vertices: [38, 42] },
+  { id: "38-43", vertices: [38, 43] },
+  { id: "39-44", vertices: [39, 44] },
+  { id: "39-101", vertices: [39, 101] },
+  { id: "39-121", vertices: [39, 121] },
+  { id: "42-43", vertices: [42, 43] },
+  { id: "42-118", vertices: [42, 118] },
+  { id: "42-119", vertices: [42, 119] },
+  { id: "42-120", vertices: [42, 120] },
+  { id: "43-57", vertices: [43, 57] },
+  { id: "43-86", vertices: [43, 86] },
+  { id: "43-120", vertices: [43, 120] },
+  { id: "44-47", vertices: [44, 47] },
+  { id: "44-50", vertices: [44, 50] },
+  { id: "44-101", vertices: [44, 101] },
+  { id: "45-46", vertices: [45, 46] },
+  { id: "45-47", vertices: [45, 47] },
+  { id: "45-50", vertices: [45, 50] },
+  { id: "45-122", vertices: [45, 122] },
+  { id: "45-123", vertices: [45, 123] },
+  { id: "46-56", vertices: [46, 56] },
+  { id: "46-58", vertices: [46, 58] },
+  { id: "46-122", vertices: [46, 122] },
+  { id: "46-123", vertices: [46, 123] },
+  { id: "47-50", vertices: [47, 50] },
+  { id: "47-51", vertices: [47, 51] },
+  { id: "47-54", vertices: [47, 54] },
+  { id: "47-90", vertices: [47, 90] },
+  { id: "47-122", vertices: [47, 122] },
+  { id: "50-123", vertices: [50, 123] },
+  { id: "51-54", vertices: [51, 54] },
+  { id: "51-69", vertices: [51, 69] },
+  { id: "51-82", vertices: [51, 82] },
+  { id: "51-90", vertices: [51, 90] },
+  { id: "52-55", vertices: [52, 55] },
+  { id: "52-58", vertices: [52, 58] },
+  { id: "52-75", vertices: [52, 75] },
+  { id: "52-92", vertices: [52, 92] },
+  { id: "52-96", vertices: [52, 96] },
+  { id: "54-82", vertices: [54, 82] },
+  { id: "54-122", vertices: [54, 122] },
+  { id: "55-58", vertices: [55, 58] },
+  { id: "55-92", vertices: [55, 92] },
+  { id: "55-122", vertices: [55, 122] },
+  { id: "56-57", vertices: [56, 57] },
+  { id: "56-58", vertices: [56, 58] },
+  { id: "56-123", vertices: [56, 123] },
+  { id: "57-58", vertices: [57, 58] },
+  { id: "57-86", vertices: [57, 86] },
+  { id: "58-96", vertices: [58, 96] },
+  { id: "58-122", vertices: [58, 122] },
+  { id: "60-65", vertices: [60, 65] },
+  { id: "60-93", vertices: [60, 93] },
+  { id: "60-125", vertices: [60, 125] },
+  { id: "60-127", vertices: [60, 127] },
+  { id: "65-67", vertices: [65, 67] },
+  { id: "65-93", vertices: [65, 93] },
+  { id: "67-90", vertices: [67, 90] },
+  { id: "67-93", vertices: [67, 93] },
+  { id: "69-70", vertices: [69, 70] },
+  { id: "69-82", vertices: [69, 82] },
+  { id: "69-90", vertices: [69, 90] },
+  { id: "69-93", vertices: [69, 93] },
+  { id: "69-127", vertices: [69, 127] },
+  { id: "70-81", vertices: [70, 81] },
+  { id: "70-82", vertices: [70, 82] },
+  { id: "70-89", vertices: [70, 89] },
+  { id: "70-127", vertices: [70, 127] },
+  { id: "73-75", vertices: [73, 75] },
+  { id: "73-81", vertices: [73, 81] },
+  { id: "73-91", vertices: [73, 91] },
+  { id: "73-92", vertices: [73, 92] },
+  { id: "73-128", vertices: [73, 128] },
+  { id: "75-92", vertices: [75, 92] },
+  { id: "75-96", vertices: [75, 96] },
+  { id: "75-97", vertices: [75, 97] },
+  { id: "75-128", vertices: [75, 128] },
+  { id: "78-79", vertices: [78, 79] },
+  { id: "78-97", vertices: [78, 97] },
+  { id: "78-128", vertices: [78, 128] },
+  { id: "78-129", vertices: [78, 129] },
+  { id: "79-80", vertices: [79, 80] },
+  { id: "79-97", vertices: [79, 97] },
+  { id: "80-96", vertices: [80, 96] },
+  { id: "80-97", vertices: [80, 97] },
+  { id: "81-82", vertices: [81, 82] },
+  { id: "81-89", vertices: [81, 89] },
+  { id: "81-91", vertices: [81, 91] },
+  { id: "81-92", vertices: [81, 92] },
+  { id: "82-92", vertices: [82, 92] },
+  { id: "82-122", vertices: [82, 122] },
+  { id: "83-84", vertices: [83, 84] },
+  { id: "83-85", vertices: [83, 85] },
+  { id: "83-114", vertices: [83, 114] },
+  { id: "84-85", vertices: [84, 85] },
+  { id: "84-86", vertices: [84, 86] },
+  { id: "84-88", vertices: [84, 88] },
+  { id: "86-88", vertices: [86, 88] },
+  { id: "86-120", vertices: [86, 120] },
+  { id: "88-110", vertices: [88, 110] },
+  { id: "88-119", vertices: [88, 119] },
+  { id: "88-120", vertices: [88, 120] },
+  { id: "89-91", vertices: [89, 91] },
+  { id: "89-125", vertices: [89, 125] },
+  { id: "89-126", vertices: [89, 126] },
+  { id: "89-127", vertices: [89, 127] },
+  { id: "90-93", vertices: [90, 93] },
+  { id: "91-126", vertices: [91, 126] },
+  { id: "91-128", vertices: [91, 128] },
+  { id: "91-129", vertices: [91, 129] },
+  { id: "92-122", vertices: [92, 122] },
+  { id: "93-127", vertices: [93, 127] },
+  { id: "96-97", vertices: [96, 97] },
+  { id: "97-128", vertices: [97, 128] },
+  { id: "98-99", vertices: [98, 99] },
+  { id: "98-100", vertices: [98, 100] },
+  { id: "99-100", vertices: [99, 100] },
+  { id: "99-101", vertices: [99, 101] },
+  { id: "99-102", vertices: [99, 102] },
+  { id: "100-115", vertices: [100, 115] },
+  { id: "101-102", vertices: [101, 102] },
+  { id: "101-121", vertices: [101, 121] },
+  { id: "102-111", vertices: [102, 111] },
+  { id: "102-119", vertices: [102, 119] },
+  { id: "102-121", vertices: [102, 121] },
+  { id: "109-110", vertices: [109, 110] },
+  { id: "109-111", vertices: [109, 111] },
+  { id: "109-112", vertices: [109, 112] },
+  { id: "109-113", vertices: [109, 113] },
+  { id: "110-111", vertices: [110, 111] },
+  { id: "110-119", vertices: [110, 119] },
+  { id: "111-119", vertices: [111, 119] },
+  { id: "112-113", vertices: [112, 113] },
+  { id: "112-114", vertices: [112, 114] },
+  { id: "112-116", vertices: [112, 116] },
+  { id: "112-124", vertices: [112, 124] },
+  { id: "113-115", vertices: [113, 115] },
+  { id: "113-117", vertices: [113, 117] },
+  { id: "113-124", vertices: [113, 124] },
+  { id: "114-116", vertices: [114, 116] },
+  { id: "115-117", vertices: [115, 117] },
+  { id: "116-124", vertices: [116, 124] },
+  { id: "117-124", vertices: [117, 124] },
+  { id: "118-119", vertices: [118, 119] },
+  { id: "119-120", vertices: [119, 120] },
+  { id: "119-121", vertices: [119, 121] },
+  { id: "125-126", vertices: [125, 126] },
+  { id: "125-127", vertices: [125, 127] },
+  { id: "126-129", vertices: [126, 129] },
+  { id: "128-129", vertices: [128, 129] },
 ] as const satisfies readonly StructureEdge[]
+
+export const STRUCTURE_PANELS = [
+  { id: "9-12-83", vertices: [9, 12, 83] },
+  { id: "9-83-114", vertices: [9, 83, 114] },
+  { id: "9-114-116", vertices: [9, 114, 116] },
+  { id: "10-11-100", vertices: [10, 11, 100] },
+  { id: "10-100-115", vertices: [10, 100, 115] },
+  { id: "10-115-117", vertices: [10, 115, 117] },
+  { id: "11-98-100", vertices: [11, 98, 100] },
+  { id: "12-83-85", vertices: [12, 83, 85] },
+  { id: "25-27-110", vertices: [25, 27, 110] },
+  { id: "25-27-114", vertices: [25, 27, 114] },
+  { id: "25-83-84", vertices: [25, 83, 84] },
+  { id: "25-83-114", vertices: [25, 83, 114] },
+  { id: "25-84-88", vertices: [25, 84, 88] },
+  { id: "26-28-111", vertices: [26, 28, 111] },
+  { id: "26-28-115", vertices: [26, 28, 115] },
+  { id: "26-99-100", vertices: [26, 99, 100] },
+  { id: "26-99-102", vertices: [26, 99, 102] },
+  { id: "26-100-115", vertices: [26, 100, 115] },
+  { id: "27-109-110", vertices: [27, 109, 110] },
+  { id: "27-109-112", vertices: [27, 109, 112] },
+  { id: "27-112-114", vertices: [27, 112, 114] },
+  { id: "28-109-111", vertices: [28, 109, 111] },
+  { id: "28-109-113", vertices: [28, 109, 113] },
+  { id: "28-113-115", vertices: [28, 113, 115] },
+  { id: "51-69-90", vertices: [51, 69, 90] },
+  { id: "52-75-96", vertices: [52, 75, 96] },
+  { id: "60-65-93", vertices: [60, 65, 93] },
+  { id: "60-93-127", vertices: [60, 93, 127] },
+  { id: "60-125-127", vertices: [60, 125, 127] },
+  { id: "65-67-93", vertices: [65, 67, 93] },
+  { id: "67-90-93", vertices: [67, 90, 93] },
+  { id: "69-70-82", vertices: [69, 70, 82] },
+  { id: "69-70-127", vertices: [69, 70, 127] },
+  { id: "69-90-93", vertices: [69, 90, 93] },
+  { id: "69-93-127", vertices: [69, 93, 127] },
+  { id: "70-81-82", vertices: [70, 81, 82] },
+  { id: "70-81-89", vertices: [70, 81, 89] },
+  { id: "70-89-127", vertices: [70, 89, 127] },
+  { id: "73-75-92", vertices: [73, 75, 92] },
+  { id: "73-75-128", vertices: [73, 75, 128] },
+  { id: "73-81-91", vertices: [73, 81, 91] },
+  { id: "73-81-92", vertices: [73, 81, 92] },
+  { id: "73-91-128", vertices: [73, 91, 128] },
+  { id: "75-96-97", vertices: [75, 96, 97] },
+  { id: "75-97-128", vertices: [75, 97, 128] },
+  { id: "78-79-97", vertices: [78, 79, 97] },
+  { id: "78-97-128", vertices: [78, 97, 128] },
+  { id: "78-128-129", vertices: [78, 128, 129] },
+  { id: "79-80-97", vertices: [79, 80, 97] },
+  { id: "80-96-97", vertices: [80, 96, 97] },
+  { id: "81-89-91", vertices: [81, 89, 91] },
+  { id: "83-84-85", vertices: [83, 84, 85] },
+  { id: "89-91-126", vertices: [89, 91, 126] },
+  { id: "89-125-126", vertices: [89, 125, 126] },
+  { id: "89-125-127", vertices: [89, 125, 127] },
+  { id: "91-126-129", vertices: [91, 126, 129] },
+  { id: "91-128-129", vertices: [91, 128, 129] },
+  { id: "98-99-100", vertices: [98, 99, 100] },
+  { id: "109-112-113", vertices: [109, 112, 113] },
+  { id: "112-113-124", vertices: [112, 113, 124] },
+  { id: "112-114-116", vertices: [112, 114, 116] },
+  { id: "112-116-124", vertices: [112, 116, 124] },
+  { id: "113-115-117", vertices: [113, 115, 117] },
+  { id: "113-117-124", vertices: [113, 117, 124] },
+] as const satisfies readonly StructurePanel[]
 
 export const STRUCTURE_VERTICES_METERS: readonly MeterVertex[] =
   STRUCTURE_VERTICES.map((vertex) => ({
@@ -331,30 +401,156 @@ export const STRUCTURE_VERTEX_MAP = new Map<VertexId, MeterVertex>(
 
 export const STRUCTURE_EDGES_RESOLVED: readonly ResolvedEdge[] =
   STRUCTURE_EDGES.map((edge) => {
-    const startVertex = STRUCTURE_VERTEX_MAP.get(edge.start)
-    const endVertex = STRUCTURE_VERTEX_MAP.get(edge.end)
+    const verticesMeters = edge.vertices.map((vertexId) =>
+      STRUCTURE_VERTEX_MAP.get(vertexId)
+    ) as [MeterVertex | undefined, MeterVertex | undefined]
 
-    if (!startVertex || !endVertex) {
+    if (!verticesMeters[0] || !verticesMeters[1]) {
       throw new Error(`Edge ${edge.id} references a missing vertex`)
     }
 
-    const start = new THREE.Vector3(...startVertex.position)
-    const end = new THREE.Vector3(...endVertex.position)
+    const start = new THREE.Vector3(...verticesMeters[0].position)
+    const end = new THREE.Vector3(...verticesMeters[1].position)
 
     return {
       ...edge,
-      startVertex,
-      endVertex,
+      verticesMeters: verticesMeters as [MeterVertex, MeterVertex],
       lengthMeters: start.distanceTo(end),
     }
   })
 
 export const STRUCTURE_BOUNDS = new THREE.Box3().setFromPoints(
-  STRUCTURE_VERTICES_METERS.map((vertex) => new THREE.Vector3(...vertex.position))
+  STRUCTURE_VERTICES_METERS.map(
+    (vertex) => new THREE.Vector3(...vertex.position)
+  )
 )
 
 export const STRUCTURE_CENTER = STRUCTURE_BOUNDS.getCenter(new THREE.Vector3())
 export const STRUCTURE_SIZE = STRUCTURE_BOUNDS.getSize(new THREE.Vector3())
+
+function edgeKey(start: VertexId, end: VertexId) {
+  return [start, end].sort((a, b) => a - b).join("-")
+}
+
+export const STRUCTURE_EDGE_KEYS = new Set(
+  STRUCTURE_EDGES.map((edge) => edgeKey(edge.vertices[0], edge.vertices[1]))
+)
+
+function getPanelEdgeIds(panel: StructurePanel) {
+  return [
+    edgeKey(panel.vertices[0], panel.vertices[1]),
+    edgeKey(panel.vertices[0], panel.vertices[2]),
+    edgeKey(panel.vertices[1], panel.vertices[2]),
+  ] as const
+}
+
+export function getPanelPositions(panel: StructurePanel) {
+  return panel.vertices.map((vertexId) => {
+    const vertex = STRUCTURE_VERTEX_MAP.get(vertexId)
+
+    if (!vertex) {
+      throw new Error(`Panel ${panel.id} references missing vertex ${vertexId}`)
+    }
+
+    return new THREE.Vector3(...vertex.position)
+  }) as [THREE.Vector3, THREE.Vector3, THREE.Vector3]
+}
+
+function triangleArea(
+  points: readonly [THREE.Vector3, THREE.Vector3, THREE.Vector3]
+) {
+  return (
+    points[1]
+      .clone()
+      .sub(points[0])
+      .cross(points[2].clone().sub(points[0]))
+      .length() / 2
+  )
+}
+
+export function getPanelInsetPositions(
+  panel: StructurePanel,
+  gapMeters: number
+) {
+  const sourcePoints = getPanelPositions(panel)
+  const area = triangleArea(sourcePoints)
+
+  if (area <= 0) {
+    return null
+  }
+
+  const edgeA = sourcePoints[1].clone().sub(sourcePoints[0])
+  const edgeB = sourcePoints[2].clone().sub(sourcePoints[0])
+  const xAxis = edgeA.clone().normalize()
+  const normal = edgeA.clone().cross(edgeB).normalize()
+  const yAxis = normal.clone().cross(xAxis).normalize()
+
+  const localPoints = sourcePoints.map((point) => {
+    const relative = point.clone().sub(sourcePoints[0])
+
+    return new THREE.Vector2(relative.dot(xAxis), relative.dot(yAxis))
+  }) as [THREE.Vector2, THREE.Vector2, THREE.Vector2]
+
+  const sideLengths = [
+    localPoints[0].distanceTo(localPoints[1]),
+    localPoints[1].distanceTo(localPoints[2]),
+    localPoints[2].distanceTo(localPoints[0]),
+  ] as const
+  const semiPerimeter = (sideLengths[0] + sideLengths[1] + sideLengths[2]) / 2
+  const inradius = area / semiPerimeter
+  const safeGap = Math.max(0, Math.min(gapMeters, inradius * 0.9))
+
+  if (safeGap === 0) {
+    return sourcePoints
+  }
+
+  const offsetLines = localPoints.map((start, index) => {
+    const end = localPoints[(index + 1) % localPoints.length]
+    const direction = end.clone().sub(start).normalize()
+    const inwardNormal = new THREE.Vector2(-direction.y, direction.x)
+
+    return {
+      point: start.clone().add(inwardNormal.multiplyScalar(safeGap)),
+      direction,
+    }
+  })
+
+  const intersectLines = (
+    lineA: (typeof offsetLines)[number],
+    lineB: (typeof offsetLines)[number]
+  ) => {
+    const delta = lineB.point.clone().sub(lineA.point)
+    const cross =
+      lineA.direction.x * lineB.direction.y -
+      lineA.direction.y * lineB.direction.x
+
+    if (Math.abs(cross) < 1e-8) {
+      return null
+    }
+
+    const t =
+      (delta.x * lineB.direction.y - delta.y * lineB.direction.x) / cross
+
+    return lineA.point.clone().add(lineA.direction.clone().multiplyScalar(t))
+  }
+
+  const insetLocal = [
+    intersectLines(offsetLines[2], offsetLines[0]),
+    intersectLines(offsetLines[0], offsetLines[1]),
+    intersectLines(offsetLines[1], offsetLines[2]),
+  ] as const
+
+  if (insetLocal.some((point) => !point)) {
+    return null
+  }
+
+  return insetLocal.map((point) =>
+    sourcePoints[0]
+      .clone()
+      .add(xAxis.clone().multiplyScalar(point!.x))
+      .add(yAxis.clone().multiplyScalar(point!.y))
+  ) as [THREE.Vector3, THREE.Vector3, THREE.Vector3]
+}
 
 export function validateStructureData() {
   const errors: string[] = []
@@ -373,9 +569,48 @@ export function validateStructureData() {
   }
 
   for (const edge of STRUCTURE_EDGES) {
-    if (!vertexIds.has(edge.start) || !vertexIds.has(edge.end)) {
-      errors.push(`Edge ${edge.id} references missing vertices ${edge.start}-${edge.end}`)
+    if (!vertexIds.has(edge.vertices[0]) || !vertexIds.has(edge.vertices[1])) {
+      errors.push(
+        `Edge ${edge.id} references missing vertices ${edge.vertices.join("-")}`
+      )
     }
+
+    if (edge.id !== edge.vertices.join("-")) {
+      errors.push(`Edge ${edge.id} does not match its vertex config`)
+    }
+  }
+
+  for (const panel of STRUCTURE_PANELS) {
+    for (const vertexId of panel.vertices) {
+      if (!vertexIds.has(vertexId)) {
+        errors.push(`Panel ${panel.id} references missing vertex ${vertexId}`)
+      }
+    }
+
+    if (panel.id !== panel.vertices.join("-")) {
+      errors.push(`Panel ${panel.id} does not match its vertex config`)
+    }
+
+    for (const edgeId of getPanelEdgeIds(panel)) {
+      if (!STRUCTURE_EDGE_KEYS.has(edgeId)) {
+        errors.push(`Panel ${panel.id} references missing edge ${edgeId}`)
+      }
+    }
+
+    const insetPoints = getPanelInsetPositions(panel, 0.04)
+
+    if (
+      !insetPoints ||
+      insetPoints.some((point) => !Number.isFinite(point.x + point.y + point.z))
+    ) {
+      errors.push(`Panel ${panel.id} has invalid inset geometry`)
+    }
+  }
+
+  if (STRUCTURE_PANELS.length !== 85) {
+    errors.push(
+      `Expected 85 lower-half panels, found ${STRUCTURE_PANELS.length}`
+    )
   }
 
   return {
@@ -383,6 +618,7 @@ export function validateStructureData() {
     errors,
     vertexCount: STRUCTURE_VERTICES.length,
     edgeCount: STRUCTURE_EDGES.length,
+    panelCount: STRUCTURE_PANELS.length,
     extentsMeters: {
       x: STRUCTURE_SIZE.x,
       y: STRUCTURE_SIZE.y,

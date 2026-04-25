@@ -23,15 +23,17 @@
 
 .menuToggle {
   position: absolute;
-  top: var(--mantine-spacing-lg);
-  left: var(--mantine-spacing-lg);
+  top: var(--mantine-spacing-md);
+  left: var(--mantine-spacing-md);
   z-index: 20;
 }
 
 .menuButton {
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
+  width: 40px;
+  height: 40px;
 }
 
 .brand {

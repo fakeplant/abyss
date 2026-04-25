@@ -18,14 +18,12 @@ function Layout({ children }: LayoutProps) {
       <Box className={classes.menuToggle}>
         <Paper
           radius="sm"
-          p="xs"
+          p="xxs"
           withBorder
-          w="44px"
-          h="44px"
           className={classes.menuButton}
+          onClick={() => setMenuOpen(!menuOpen)}
         >
           <Burger
-            onClick={() => setMenuOpen(!menuOpen)}
             opened={menuOpen}
             aria-label="Toggle controls"
             size="sm"

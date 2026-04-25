@@ -11,6 +11,7 @@ export const theme = createTheme({
   },
 
   primaryColor: "dark",
+  primaryShade: { light: 9, dark: 2 },
 
   // spacing
   spacing: { xxs: "calc(0.225rem*var(--mantine-scale))" },

@@ -4,6 +4,7 @@ import { Grid } from "@react-three/drei"
 import * as THREE from "three"
 import Cameras from "./Cameras"
 import Scene from "./Scene"
+import { getThemeColor, parseThemeColor, useMantineTheme } from "@mantine/core"
 
 function Loading() {
   return null
@@ -11,6 +12,7 @@ function Loading() {
 
 function Abyss() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const theme = useMantineTheme()
 
   return (
     <Canvas
@@ -27,8 +29,8 @@ function Abyss() {
           sectionSize={5}
           fadeDistance={70}
           fadeStrength={4}
-          sectionColor="#8aa8b8"
-          cellColor="#d4dde2"
+          sectionColor={theme.colors.dark[5]}
+          cellColor={theme.colors.dark[5]}
         />
         <Cameras />
       </Suspense>
