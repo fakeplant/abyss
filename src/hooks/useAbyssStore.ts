@@ -21,6 +21,11 @@ export interface AbyssViewState {
   barBeamLengthMeters: number
   barBeamAngleDeg: number
   barMountOffsetMeters: number
+  showLasers: boolean
+  laserColor: string
+  laserBrightness: number
+  laserBeamLengthMeters: number
+  laserFanAngleDeg: number
   showHumans: boolean
   humanScale: number
   humanAnimationSpeed: number
@@ -47,6 +52,11 @@ export interface AbyssViewActions {
   setBarBeamLengthMeters: (length: number) => void
   setBarBeamAngleDeg: (angle: number) => void
   setBarMountOffsetMeters: (offset: number) => void
+  setShowLasers: (show: boolean) => void
+  setLaserColor: (color: string) => void
+  setLaserBrightness: (brightness: number) => void
+  setLaserBeamLengthMeters: (length: number) => void
+  setLaserFanAngleDeg: (angle: number) => void
   setShowHumans: (showHumans: boolean) => void
   setHumanScale: (humanScale: number) => void
   setHumanAnimationSpeed: (humanAnimationSpeed: number) => void
@@ -73,6 +83,11 @@ const DEFAULT_STATE: AbyssViewState = {
   barBeamLengthMeters: 20,
   barBeamAngleDeg: 1,
   barMountOffsetMeters: 0.04,
+  showLasers: true,
+  laserColor: "#38ff7a",
+  laserBrightness: 0.9,
+  laserBeamLengthMeters: 16,
+  laserFanAngleDeg: 34,
   showHumans: true,
   humanScale: 1,
   humanAnimationSpeed: 1,
@@ -125,6 +140,12 @@ export function useAbyssStore(): AbyssViewState & AbyssViewActions {
     setBarBeamAngleDeg: (barBeamAngleDeg) => setState({ barBeamAngleDeg }),
     setBarMountOffsetMeters: (barMountOffsetMeters) =>
       setState({ barMountOffsetMeters }),
+    setShowLasers: (showLasers) => setState({ showLasers }),
+    setLaserColor: (laserColor) => setState({ laserColor }),
+    setLaserBrightness: (laserBrightness) => setState({ laserBrightness }),
+    setLaserBeamLengthMeters: (laserBeamLengthMeters) =>
+      setState({ laserBeamLengthMeters }),
+    setLaserFanAngleDeg: (laserFanAngleDeg) => setState({ laserFanAngleDeg }),
     setShowHumans: (showHumans) => setState({ showHumans }),
     setHumanScale: (humanScale) => setState({ humanScale }),
     setHumanAnimationSpeed: (humanAnimationSpeed) =>

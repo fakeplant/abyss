@@ -9,10 +9,16 @@ import {
   barFixtureConfigListSchema,
   type BarFixtureConfig,
   type FixtureGravityOrientation,
+  type LaserFixtureConfig,
 } from "./fixtureSchemas"
 
 export type FixtureMountKind = "edge" | "free"
-export type { BarFixtureConfig, BarFrontEmitterConfig } from "./fixtureSchemas"
+export type {
+  BarFixtureConfig,
+  BarFrontEmitterConfig,
+  LaserFixtureConfig,
+  LaserPattern,
+} from "./fixtureSchemas"
 
 export interface FixtureRotation {
   xDeg: number
@@ -72,7 +78,20 @@ export interface BarFixture extends ResolvedFixtureBase {
   mountDirection: readonly [number, number, number]
 }
 
-export type DmxFixture = SpotlightFixture | BarFixture
+export interface LaserFixture extends ResolvedFixtureBase {
+  type: "laser"
+  mount: "edge"
+  mountEdgeId: string
+  mountPoint: readonly [number, number, number]
+  aimOrientation: FixtureGravityOrientation
+  rotationDeg: number
+  rotation: FixtureRotation
+  color: string
+  pattern: LaserFixtureConfig["pattern"]
+  mountDirection: readonly [number, number, number]
+}
+
+export type DmxFixture = SpotlightFixture | BarFixture | LaserFixture
 
 const FIXTURE_EDGE_MAP = new Map(
   STRUCTURE_EDGES_RESOLVED.map((edge) => [edge.id, edge])
@@ -236,6 +255,37 @@ export const SPOTLIGHT_FIXTURE_CONFIGS = [
 export const BAR_FIXTURE_CONFIGS =
   barFixtureConfigListSchema.parse(generatedBarFixtures)
 
+const LASER_EDGE_TS = [0.2, 0.4, 0.6, 0.8] as const
+
+function createLaserFixtureConfig(
+  mountEdgeId: "57-58" | "57-86",
+  edgeT: (typeof LASER_EDGE_TS)[number],
+  index: number,
+  yDeg: number
+): LaserFixtureConfig {
+  return {
+    id: `laser-${mountEdgeId}-${index + 1}`,
+    type: "laser",
+    mount: "edge",
+    mountEdgeId,
+    edgeT,
+    gravityOrientation: "down",
+    aimOrientation: "right",
+    rotation: { xDeg: 0, yDeg },
+    color: "#38ff7a",
+    pattern: "fan",
+  }
+}
+
+export const LASER_FIXTURE_CONFIGS = [
+  ...LASER_EDGE_TS.map((edgeT, index) =>
+    createLaserFixtureConfig("57-58", edgeT, index, -18 + index * 12)
+  ),
+  ...LASER_EDGE_TS.map((edgeT, index) =>
+    createLaserFixtureConfig("57-86", edgeT, index, 18 - index * 12)
+  ),
+] as const satisfies readonly LaserFixtureConfig[]
+
 function getEdgeBasis(mountEdgeId: string, edgeT = 0.5) {
   const edge = FIXTURE_EDGE_MAP.get(mountEdgeId)
 
@@ -396,6 +446,30 @@ function resolveEdgeMount(
   }
 }
 
+function getRotationAroundEdgeDeg(
+  fromDirection: THREE.Vector3,
+  targetDirection: THREE.Vector3,
+  edgeAxis: THREE.Vector3
+) {
+  const from = projectPerpendicularToEdge(fromDirection, edgeAxis)
+  const target = projectPerpendicularToEdge(targetDirection, edgeAxis)
+
+  if (from.lengthSq() < 1e-8 || target.lengthSq() < 1e-8) {
+    return 0
+  }
+
+  from.normalize()
+  target.normalize()
+
+  const cross = new THREE.Vector3().crossVectors(from, target)
+  const angleRadians = Math.atan2(edgeAxis.dot(cross), from.dot(target))
+
+  return THREE.MathUtils.euclideanModulo(
+    THREE.MathUtils.radToDeg(angleRadians),
+    360
+  )
+}
+
 function resolveSpotlight(config: SpotlightFixtureConfig): SpotlightFixture {
   if (config.mount === "free") {
     const neutralDirection = getFreeGravityDirection(config.gravityOrientation)
@@ -480,11 +554,44 @@ function resolveBar(config: BarFixtureConfig): BarFixture {
   }
 }
 
+function resolveLaser(config: LaserFixtureConfig): LaserFixture {
+  const {
+    position,
+    mountPoint,
+    neutralDirection,
+    rotationXAxis,
+    rotationYAxis,
+    mountDirection,
+  } = resolveEdgeMount(
+    config.mountEdgeId,
+    config.gravityOrientation,
+    config.edgeT,
+    0.11
+  )
+  const aimDirection = getWorldOrientationVector(config.aimOrientation)
+  const rotationDeg =
+    config.rotationDeg ??
+    getRotationAroundEdgeDeg(neutralDirection, aimDirection, mountDirection)
+
+  return {
+    ...config,
+    rotationDeg,
+    position: position.toArray(),
+    mountPoint: mountPoint.toArray(),
+    neutralDirection: neutralDirection.toArray(),
+    rotationXAxis: rotationXAxis.toArray(),
+    rotationYAxis: rotationYAxis.toArray(),
+    mountDirection: mountDirection.toArray(),
+  }
+}
+
 export const SPOTLIGHT_FIXTURES = SPOTLIGHT_FIXTURE_CONFIGS.map(resolveSpotlight)
 export const BAR_FIXTURES = BAR_FIXTURE_CONFIGS.map(resolveBar)
+export const LASER_FIXTURES = LASER_FIXTURE_CONFIGS.map(resolveLaser)
 export const DMX_FIXTURES: readonly DmxFixture[] = [
   ...SPOTLIGHT_FIXTURES,
   ...BAR_FIXTURES,
+  ...LASER_FIXTURES,
 ]
 
 export function validateFixtureData() {
@@ -550,6 +657,27 @@ export function validateFixtureData() {
         errors.push(`Bar ${fixture.id} neutral direction is not perpendicular`)
       }
     }
+
+    if (fixture.type === "laser") {
+      if (fixture.pattern !== "fan") {
+        errors.push(`Laser ${fixture.id} has unsupported pattern`)
+      }
+
+      if (
+        fixture.rotationDeg < 0 ||
+        fixture.rotationDeg >= 360 ||
+        !Number.isFinite(fixture.rotationDeg)
+      ) {
+        errors.push(`Laser ${fixture.id} rotation is outside 0..360 degrees`)
+      }
+
+      if (
+        fixture.mountPoint.some((value) => !Number.isFinite(value)) ||
+        fixture.mountDirection.some((value) => !Number.isFinite(value))
+      ) {
+        errors.push(`Laser ${fixture.id} has invalid orientation vectors`)
+      }
+    }
   }
 
   if (SPOTLIGHT_FIXTURES.length !== 16) {
@@ -560,11 +688,16 @@ export function validateFixtureData() {
     errors.push("Expected at least one generated bar fixture")
   }
 
+  if (LASER_FIXTURES.length !== 8) {
+    errors.push(`Expected 8 laser fixtures, found ${LASER_FIXTURES.length}`)
+  }
+
   return {
     valid: errors.length === 0,
     errors,
     fixtureCount: DMX_FIXTURES.length,
     spotlightCount: SPOTLIGHT_FIXTURES.length,
     barCount: BAR_FIXTURES.length,
+    laserCount: LASER_FIXTURES.length,
   }
 }

@@ -35,6 +35,7 @@ import {
 import {
   BAR_FIXTURES,
   DMX_FIXTURES,
+  LASER_FIXTURES,
   SPOTLIGHT_FIXTURES,
   validateFixtureData,
 } from "../../data/fixtures"
@@ -64,6 +65,11 @@ function Menu() {
     barBeamLengthMeters,
     barBeamAngleDeg,
     barMountOffsetMeters,
+    showLasers,
+    laserColor,
+    laserBrightness,
+    laserBeamLengthMeters,
+    laserFanAngleDeg,
     showHumans,
     humanScale,
     humanAnimationSpeed,
@@ -86,6 +92,11 @@ function Menu() {
     setBarBeamLengthMeters,
     setBarBeamAngleDeg,
     setBarMountOffsetMeters,
+    setShowLasers,
+    setLaserColor,
+    setLaserBrightness,
+    setLaserBeamLengthMeters,
+    setLaserFanAngleDeg,
     setShowHumans,
     setHumanScale,
     setHumanAnimationSpeed,
@@ -123,6 +134,7 @@ function Menu() {
               "structure",
               "spotlights",
               "bars",
+              "lasers",
               "humans",
               "panels",
               "tube",
@@ -150,6 +162,7 @@ function Menu() {
                 <Text size="xs">{DMX_FIXTURES.length} DMX fixtures</Text>
                 <Text size="xs">{SPOTLIGHT_FIXTURES.length} spotlights</Text>
                 <Text size="xs">{BAR_FIXTURES.length} bars</Text>
+                <Text size="xs">{LASER_FIXTURES.length} lasers</Text>
                 <Text size="xs">{HUMAN_PLACEMENTS.length} human refs</Text>
               </Stack>
             </Accordion.Panel>
@@ -369,6 +382,82 @@ function Menu() {
                     size="sm"
                   />
                 </Box>
+              </Stack>
+            </Accordion.Panel>
+          </Accordion.Item>
+
+          <Accordion.Item value="lasers">
+            <Accordion.Control icon={<IconBulb size={16} />}>
+              Lasers
+            </Accordion.Control>
+            <Accordion.Panel>
+              <Stack gap="sm">
+                <Switch
+                  label={`${LASER_FIXTURES.length} edge-mounted lasers`}
+                  checked={showLasers}
+                  onChange={(event) =>
+                    setShowLasers(event.currentTarget.checked)
+                  }
+                  size="sm"
+                />
+                <ColorInput
+                  label="Beam color"
+                  value={laserColor}
+                  onChange={setLaserColor}
+                  swatches={["#38ff7a", "#00e5ff", "#ff1744", "#f8fafc"]}
+                  size="xs"
+                />
+                <NumberInput
+                  label="Beam length"
+                  suffix=" m"
+                  min={0.5}
+                  max={40}
+                  step={0.5}
+                  decimalScale={1}
+                  value={laserBeamLengthMeters}
+                  onChange={(value) =>
+                    setLaserBeamLengthMeters(
+                      typeof value === "number" ? value : 16
+                    )
+                  }
+                  size="xs"
+                />
+                <NumberInput
+                  label="Fan angle"
+                  suffix="°"
+                  min={2}
+                  max={120}
+                  step={1}
+                  decimalScale={0}
+                  value={laserFanAngleDeg}
+                  onChange={(value) =>
+                    setLaserFanAngleDeg(typeof value === "number" ? value : 34)
+                  }
+                  size="xs"
+                />
+                <Box>
+                  <Text
+                    size="xs"
+                    fw={500}
+                    mb={6}
+                  >
+                    Beam brightness
+                  </Text>
+                  <Slider
+                    min={0}
+                    max={1.5}
+                    step={0.05}
+                    value={laserBrightness}
+                    onChange={setLaserBrightness}
+                    size="sm"
+                  />
+                </Box>
+                <Text
+                  size="xs"
+                  c="dimmed"
+                >
+                  Laser beams are simulated line effects, not real lights.
+                </Text>
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>

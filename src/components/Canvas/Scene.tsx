@@ -20,6 +20,8 @@ import {
 import {
   BAR_FIXTURES,
   BarFixture,
+  LASER_FIXTURES,
+  LaserFixture,
   SPOTLIGHT_FIXTURES,
   SpotlightFixture,
 } from "../../data/fixtures"
@@ -42,7 +44,9 @@ const BAR_SPIN_DEG_PER_SECOND = 36
 const BAR_REAR_COB_WIDTH_METERS = BAR_LENGTH_METERS * 0.78
 const BAR_REAR_COB_HEIGHT_METERS = BAR_WIDTH_METERS * 0.65
 const BAR_REAR_COB_INTENSITY_SCALE = 10
-const DEBUG_BAR_BEAM_FIXTURE_ID = "bar-right-9-12-01"
+const MAX_ACTIVE_BAR_COB_RECT_AREA_LIGHTS = 8
+const LASER_BODY_SIZE_METERS: [number, number, number] = [0.26, 0.16, 0.2]
+const LASER_BEAM_COUNT = 9
 
 RectAreaLightUniformsLib.init()
 
@@ -82,6 +86,16 @@ function getBarQuaternion(fixture: BarFixture) {
   const xAxis = new THREE.Vector3(...fixture.mountDirection).normalize()
   const yAxis = new THREE.Vector3(...fixture.neutralDirection).normalize()
   const zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis).normalize()
+
+  return new THREE.Quaternion().setFromRotationMatrix(
+    new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis)
+  )
+}
+
+function getLaserQuaternion(fixture: LaserFixture) {
+  const xAxis = new THREE.Vector3(...fixture.mountDirection).normalize()
+  const yAxis = new THREE.Vector3(...fixture.rotationYAxis).normalize()
+  const zAxis = new THREE.Vector3(...fixture.neutralDirection).normalize()
 
   return new THREE.Quaternion().setFromRotationMatrix(
     new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis)
@@ -537,6 +551,7 @@ interface BarFixtureProps {
   beamLengthMeters: number
   beamAngleDeg: number
   mountOffsetMeters: number
+  enableCobLight: boolean
   bodyMaterial: THREE.Material
 }
 
@@ -596,11 +611,11 @@ function BarFixtureView({
   beamLengthMeters,
   beamAngleDeg,
   mountOffsetMeters,
+  enableCobLight,
   bodyMaterial,
 }: BarFixtureProps) {
   const headRef = useRef<THREE.Group>(null)
   const beamRefs = useRef<Array<THREE.Mesh | null>>([])
-  const lastBeamDebugLogRef = useRef(0)
   const quaternion = useMemo(() => getBarQuaternion(fixture), [fixture])
   const position = useMemo(
     () =>
@@ -666,31 +681,9 @@ function BarFixtureView({
     const rawRotationDeg =
       baseRotationDeg + clock.elapsedTime * BAR_SPIN_DEG_PER_SECOND
     const rotationDeg = normalizeBarRotationDeg(rawRotationDeg)
-    const effectiveBeamLength = getEffectiveBeamLength(rotationDeg)
 
     headRef.current.rotation.x = THREE.MathUtils.degToRad(rotationDeg)
     updateBeamMeshes(rotationDeg)
-
-    if (
-      fixture.id === DEBUG_BAR_BEAM_FIXTURE_ID &&
-      clock.elapsedTime - lastBeamDebugLogRef.current > 0.25
-    ) {
-      lastBeamDebugLogRef.current = clock.elapsedTime
-      const rotation0To360Deg = normalizeBarRotation0To360Deg(rawRotationDeg)
-      const scale = getFakeBeamLengthScale(rotation0To360Deg)
-
-      console.info(
-        `[Abyss bar beam debug] ${fixture.id} ` +
-          `raw=${rawRotationDeg.toFixed(2)}deg ` +
-          `rot360=${rotation0To360Deg.toFixed(2)}deg ` +
-          `signed=${rotationDeg.toFixed(2)}deg ` +
-          `scale=${scale.toFixed(3)} ` +
-          `length=${effectiveBeamLength.toFixed(3)}m ` +
-          `min=${minBeamLength.toFixed(3)}m ` +
-          `max=${safeBeamLength.toFixed(3)}m ` +
-          `enabled=${fixture.scaleFakeBeamWithRotation}`
-      )
-    }
   })
 
   return (
@@ -769,14 +762,16 @@ function BarFixtureView({
             />
           )
         })}
-        <rectAreaLight
-          width={BAR_REAR_COB_WIDTH_METERS}
-          height={BAR_REAR_COB_HEIGHT_METERS}
-          color={fixture.rearCobColor}
-          intensity={cobBrightness * BAR_REAR_COB_INTENSITY_SCALE}
-          position={[0, -BAR_HEAD_HEIGHT_METERS / 2 - 0.006, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-        />
+        {enableCobLight && (
+          <rectAreaLight
+            width={BAR_REAR_COB_WIDTH_METERS}
+            height={BAR_REAR_COB_HEIGHT_METERS}
+            color={fixture.rearCobColor}
+            intensity={cobBrightness * BAR_REAR_COB_INTENSITY_SCALE}
+            position={[0, -BAR_HEAD_HEIGHT_METERS / 2 - 0.006, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          />
+        )}
         <mesh position={[0, -BAR_HEAD_HEIGHT_METERS / 2 - 0.003, 0]}>
           <boxGeometry
             args={[
@@ -787,6 +782,125 @@ function BarFixtureView({
           />
           <meshBasicMaterial color={fixture.rearCobColor} />
         </mesh>
+      </group>
+    </group>
+  )
+}
+
+interface LaserFixtureProps {
+  fixture: LaserFixture
+  color: string
+  brightness: number
+  beamLengthMeters: number
+  fanAngleDeg: number
+  bodyMaterial: THREE.Material
+}
+
+function LaserFixtureView({
+  fixture,
+  color,
+  brightness,
+  beamLengthMeters,
+  fanAngleDeg,
+  bodyMaterial,
+}: LaserFixtureProps) {
+  const beamGroupRef = useRef<THREE.Group>(null)
+  const quaternion = useMemo(() => getLaserQuaternion(fixture), [fixture])
+  const phase = useMemo(
+    () => getStableUnitValue(fixture.id) * Math.PI * 2,
+    [fixture.id]
+  )
+  const beamGeometry = useMemo(() => {
+    const geometry = new THREE.BufferGeometry()
+    const positions: number[] = []
+    const length = Math.max(0.1, beamLengthMeters)
+    const halfAngle = THREE.MathUtils.degToRad(
+      THREE.MathUtils.clamp(fanAngleDeg, 1, 140) / 2
+    )
+    const apertureZ = LASER_BODY_SIZE_METERS[2] / 2 + 0.014
+
+    for (let index = 0; index < LASER_BEAM_COUNT; index += 1) {
+      const t = index / (LASER_BEAM_COUNT - 1)
+      const angle = THREE.MathUtils.lerp(-halfAngle, halfAngle, t)
+
+      positions.push(0, 0, apertureZ)
+      positions.push(
+        Math.sin(angle) * length,
+        0,
+        apertureZ + Math.cos(angle) * length
+      )
+    }
+
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(positions, 3)
+    )
+    geometry.computeBoundingSphere()
+
+    return geometry
+  }, [beamLengthMeters, fanAngleDeg])
+
+  useEffect(() => () => beamGeometry.dispose(), [beamGeometry])
+
+  useFrame(({ clock }) => {
+    if (!beamGroupRef.current) {
+      return
+    }
+
+    beamGroupRef.current.rotation.y =
+      Math.sin(clock.elapsedTime * 1.3 + phase) * THREE.MathUtils.degToRad(12)
+    beamGroupRef.current.rotation.z =
+      Math.sin(clock.elapsedTime * 0.9 + phase * 0.7) *
+      THREE.MathUtils.degToRad(18)
+  })
+
+  return (
+    <group
+      position={fixture.position}
+      quaternion={quaternion}
+    >
+      <group
+        rotation={[
+          THREE.MathUtils.degToRad(fixture.rotationDeg),
+          THREE.MathUtils.degToRad(fixture.rotation.yDeg),
+          THREE.MathUtils.degToRad(fixture.rotation.xDeg),
+        ]}
+      >
+        <mesh
+          castShadow
+          receiveShadow
+          material={bodyMaterial}
+        >
+          <boxGeometry args={LASER_BODY_SIZE_METERS} />
+        </mesh>
+        <mesh
+          position={[0, 0, LASER_BODY_SIZE_METERS[2] / 2 + 0.006]}
+          rotation={[Math.PI / 2, 0, 0]}
+        >
+          <cylinderGeometry args={[0.045, 0.045, 0.014, 24]} />
+          <meshBasicMaterial color="#030712" />
+        </mesh>
+        <mesh
+          position={[0, 0, LASER_BODY_SIZE_METERS[2] / 2 + 0.014]}
+          rotation={[Math.PI / 2, 0, 0]}
+        >
+          <cylinderGeometry args={[0.022, 0.022, 0.016, 20]} />
+          <meshBasicMaterial color={color} />
+        </mesh>
+        <group ref={beamGroupRef}>
+          <lineSegments
+            geometry={beamGeometry}
+            renderOrder={4}
+          >
+            <lineBasicMaterial
+              color={color}
+              transparent
+              opacity={THREE.MathUtils.clamp(brightness * 0.62, 0, 0.92)}
+              blending={THREE.AdditiveBlending}
+              depthWrite={false}
+            />
+          </lineSegments>
+        </group>
       </group>
     </group>
   )
@@ -845,6 +959,11 @@ function Scene() {
     barBeamLengthMeters,
     barBeamAngleDeg,
     barMountOffsetMeters,
+    showLasers,
+    laserColor,
+    laserBrightness,
+    laserBeamLengthMeters,
+    laserFanAngleDeg,
     showHumans,
     humanScale,
     humanAnimationSpeed,
@@ -931,7 +1050,7 @@ function Scene() {
             />
           ))}
         {showBars &&
-          BAR_FIXTURES.map((fixture) => (
+          BAR_FIXTURES.map((fixture, index) => (
             <BarFixtureView
               key={fixture.id}
               fixture={fixture}
@@ -941,6 +1060,19 @@ function Scene() {
               beamLengthMeters={barBeamLengthMeters}
               beamAngleDeg={barBeamAngleDeg}
               mountOffsetMeters={barMountOffsetMeters}
+              enableCobLight={index < MAX_ACTIVE_BAR_COB_RECT_AREA_LIGHTS}
+              bodyMaterial={bodyMaterial}
+            />
+          ))}
+        {showLasers &&
+          LASER_FIXTURES.map((fixture) => (
+            <LaserFixtureView
+              key={fixture.id}
+              fixture={fixture}
+              color={laserColor}
+              brightness={laserBrightness}
+              beamLengthMeters={laserBeamLengthMeters}
+              fanAngleDeg={laserFanAngleDeg}
               bodyMaterial={bodyMaterial}
             />
           ))}

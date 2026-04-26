@@ -38,8 +38,29 @@ export const barFixtureConfigSchema = z.object({
 
 export const barFixtureConfigListSchema = z.array(barFixtureConfigSchema)
 
+export const laserPatternSchema = z.enum(["fan"])
+
+export const laserFixtureConfigSchema = z.object({
+  id: z.string().min(1),
+  type: z.literal("laser"),
+  mount: z.literal("edge"),
+  mountEdgeId: z.string().min(1),
+  edgeT: z.number().min(0).max(1).default(0.5),
+  gravityOrientation: fixtureGravityOrientationSchema,
+  aimOrientation: fixtureGravityOrientationSchema.default("right"),
+  rotationDeg: z.number().min(0).max(360).optional(),
+  rotation: z.object({
+    xDeg: z.number().min(-120).max(120).default(0),
+    yDeg: z.number().min(-120).max(120).default(0),
+  }),
+  color: hexColorSchema,
+  pattern: laserPatternSchema,
+})
+
 export type FixtureGravityOrientation = z.infer<
   typeof fixtureGravityOrientationSchema
 >
 export type BarFrontEmitterConfig = z.infer<typeof barFrontEmitterConfigSchema>
 export type BarFixtureConfig = z.infer<typeof barFixtureConfigSchema>
+export type LaserFixtureConfig = z.infer<typeof laserFixtureConfigSchema>
+export type LaserPattern = z.infer<typeof laserPatternSchema>
