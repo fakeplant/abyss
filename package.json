@@ -11,6 +11,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "convert:step": "node --max-old-space-size=8192 scripts/convert-step.mjs",
+    "generate:bars": "tsx scripts/generate-bar-fixtures.ts",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
@@ -25,7 +26,8 @@
     "clsx": "^2.1.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tanstack/react-router-devtools": "^1.120.15",

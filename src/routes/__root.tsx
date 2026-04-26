@@ -4,6 +4,7 @@ import { Notifications } from "@mantine/notifications"
 import { theme } from "../lib/theme/theme"
 import { resolver } from "../lib/theme/variables"
 import Layout from "../components/Layout/Layout"
+import { MusicPlaybackProvider } from "../providers/MusicPlaybackProvider"
 
 import "@mantine/core/styles.css"
 import "@mantine/notifications/styles.css"
@@ -16,9 +17,11 @@ export const Route = createRootRoute({
       forceColorScheme="dark"
     >
       <Notifications />
-      <Layout>
-        <Outlet />
-      </Layout>
+      <MusicPlaybackProvider>
+        <Layout>
+          <Outlet />
+        </Layout>
+      </MusicPlaybackProvider>
     </MantineProvider>
   ),
 })

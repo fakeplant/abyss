@@ -1,9 +1,12 @@
 import {
   Accordion,
   Box,
+  Button,
   ColorInput,
+  FileButton,
+  Group,
   NumberInput,
-  SegmentedControl,
+  ScrollArea,
   Slider,
   Stack,
   Switch,
@@ -14,19 +17,30 @@ import {
   IconCircleLetterI,
   IconDimensions,
   IconEye,
+  IconMusic,
+  IconPlayerPause,
+  IconPlayerPlay,
   IconTriangle,
+  IconUpload,
+  IconVolume,
   IconUsers,
 } from "@tabler/icons-react"
 import {
-  DMX_FIXTURES,
   STRUCTURE_EDGES,
   STRUCTURE_PANELS,
   STRUCTURE_SIZE,
   STRUCTURE_VERTICES,
   validateStructureData,
 } from "../../data/carStructure"
+import {
+  BAR_FIXTURES,
+  DMX_FIXTURES,
+  SPOTLIGHT_FIXTURES,
+  validateFixtureData,
+} from "../../data/fixtures"
 import { HUMAN_PLACEMENTS } from "../../data/humans"
-import { DmxRenderMode, useAbyssStore } from "../../hooks/useAbyssStore"
+import { useAbyssStore } from "../../hooks/useAbyssStore"
+import { useMusicPlayback } from "../../hooks/useMusicPlayback"
 import classes from "./Menu.module.css"
 
 function Menu() {
@@ -38,13 +52,18 @@ function Menu() {
     showPanels,
     panelColor,
     panelGapMeters,
-    showDmxFixtures,
-    dmxRenderMode,
-    dmxColor,
-    dmxRealIntensity,
-    dmxFakeIntensity,
-    dmxBeamAngleDeg,
-    dmxCastShadows,
+    showSpotlights,
+    spotlightColor,
+    spotlightIntensity,
+    spotlightBeamAngleDeg,
+    spotlightCastShadows,
+    showBars,
+    barRotationDeg,
+    barEmitterBrightness,
+    barCobBrightness,
+    barBeamLengthMeters,
+    barBeamAngleDeg,
+    barMountOffsetMeters,
     showHumans,
     humanScale,
     humanAnimationSpeed,
@@ -55,39 +74,69 @@ function Menu() {
     setShowPanels,
     setPanelColor,
     setPanelGapMeters,
-    setShowDmxFixtures,
-    setDmxRenderMode,
-    setDmxColor,
-    setDmxRealIntensity,
-    setDmxFakeIntensity,
-    setDmxBeamAngleDeg,
-    setDmxCastShadows,
+    setShowSpotlights,
+    setSpotlightColor,
+    setSpotlightIntensity,
+    setSpotlightBeamAngleDeg,
+    setSpotlightCastShadows,
+    setShowBars,
+    setBarRotationDeg,
+    setBarEmitterBrightness,
+    setBarCobBrightness,
+    setBarBeamLengthMeters,
+    setBarBeamAngleDeg,
+    setBarMountOffsetMeters,
     setShowHumans,
     setHumanScale,
     setHumanAnimationSpeed,
   } = useAbyssStore()
+  const {
+    isPlaying,
+    songName,
+    volume,
+    canPlay,
+    playbackError,
+    setSongFile,
+    togglePlayback,
+    setVolume,
+  } = useMusicPlayback()
 
   const validation = validateStructureData()
+  const fixtureValidation = validateFixtureData()
 
   return (
     <aside className={classes.wrapper}>
-      <Stack
-        gap="sm"
-        p="md"
-        mt="60px"
+      <ScrollArea
+        className={classes.scrollArea}
+        offsetScrollbars
+        scrollbarSize={8}
+        type="auto"
       >
-        <Accordion
-          multiple
-          defaultValue={["structure", "dmx", "humans", "panels", "tube"]}
-          chevronPosition="right"
-          classNames={{
-            item: classes.item,
-            control: classes.control,
-            content: classes.content,
-            chevron: classes.chevron,
-          }}
+        <Stack
+          gap="sm"
+          p="md"
+          mt="60px"
         >
-          <Accordion.Item value="structure">
+          <Accordion
+            multiple
+            defaultValue={[
+              "structure",
+              "spotlights",
+              "bars",
+              "humans",
+              "panels",
+              "tube",
+              "music",
+            ]}
+            chevronPosition="right"
+            classNames={{
+              item: classes.item,
+              control: classes.control,
+              content: classes.content,
+              chevron: classes.chevron,
+            }}
+          >
+            <Accordion.Item value="structure">
             <Accordion.Control icon={<IconCircleLetterI size={16} />}>
               Structure
             </Accordion.Control>
@@ -98,7 +147,9 @@ function Menu() {
                   {STRUCTURE_EDGES.length} edges
                 </Text>
                 <Text size="xs">{STRUCTURE_PANELS.length} lower panels</Text>
-                <Text size="xs">{DMX_FIXTURES.length} DMX test fixtures</Text>
+                <Text size="xs">{DMX_FIXTURES.length} DMX fixtures</Text>
+                <Text size="xs">{SPOTLIGHT_FIXTURES.length} spotlights</Text>
+                <Text size="xs">{BAR_FIXTURES.length} bars</Text>
                 <Text size="xs">{HUMAN_PLACEMENTS.length} human refs</Text>
               </Stack>
             </Accordion.Panel>
@@ -148,34 +199,24 @@ function Menu() {
             </Accordion.Panel>
           </Accordion.Item>
 
-          <Accordion.Item value="dmx">
+          <Accordion.Item value="spotlights">
             <Accordion.Control icon={<IconBulb size={16} />}>
-              DMX Fixtures
+              Spotlights
             </Accordion.Control>
             <Accordion.Panel>
               <Stack gap="sm">
                 <Switch
-                  label={`${DMX_FIXTURES.length} single-color cans`}
-                  checked={showDmxFixtures}
+                  label={`${SPOTLIGHT_FIXTURES.length} real spotlights`}
+                  checked={showSpotlights}
                   onChange={(event) =>
-                    setShowDmxFixtures(event.currentTarget.checked)
+                    setShowSpotlights(event.currentTarget.checked)
                   }
                   size="sm"
                 />
-                <SegmentedControl
-                  value={dmxRenderMode}
-                  onChange={(value) => setDmxRenderMode(value as DmxRenderMode)}
-                  data={[
-                    { label: "Real", value: "real" },
-                    { label: "Fake", value: "fake" },
-                  ]}
-                  size="xs"
-                  fullWidth
-                />
                 <ColorInput
                   label="Light color"
-                  value={dmxColor}
-                  onChange={setDmxColor}
+                  value={spotlightColor}
+                  onChange={setSpotlightColor}
                   swatches={["#ffdca8", "#c7e7ff", "#ffd2f0", "#ffffff"]}
                   size="xs"
                 />
@@ -185,26 +226,12 @@ function Menu() {
                   max={1000}
                   step={1}
                   decimalScale={1}
-                  value={dmxRealIntensity}
+                  value={spotlightIntensity}
                   onChange={(value) =>
-                    setDmxRealIntensity(typeof value === "number" ? value : 12)
-                  }
-                  disabled={dmxRenderMode !== "real"}
-                  size="xs"
-                />
-                <NumberInput
-                  label="Fake beam strength"
-                  min={0}
-                  max={1}
-                  step={0.02}
-                  decimalScale={2}
-                  value={dmxFakeIntensity}
-                  onChange={(value) =>
-                    setDmxFakeIntensity(
-                      typeof value === "number" ? value : 0.24
+                    setSpotlightIntensity(
+                      typeof value === "number" ? value : 12
                     )
                   }
-                  disabled={dmxRenderMode !== "fake"}
                   size="xs"
                 />
                 <NumberInput
@@ -214,27 +241,219 @@ function Menu() {
                   max={70}
                   step={1}
                   decimalScale={0}
-                  value={dmxBeamAngleDeg}
+                  value={spotlightBeamAngleDeg}
                   onChange={(value) =>
-                    setDmxBeamAngleDeg(typeof value === "number" ? value : 24)
+                    setSpotlightBeamAngleDeg(
+                      typeof value === "number" ? value : 24
+                    )
                   }
                   size="xs"
                 />
                 <Switch
                   label="Cast shadows"
-                  checked={dmxCastShadows}
+                  checked={spotlightCastShadows}
                   onChange={(event) =>
-                    setDmxCastShadows(event.currentTarget.checked)
+                    setSpotlightCastShadows(event.currentTarget.checked)
                   }
-                  disabled={dmxRenderMode !== "real"}
                   size="sm"
                 />
                 <Text
                   size="xs"
                   c="dimmed"
                 >
-                  Real mode enables shadow casting on every DMX can.
+                  Spotlights always use real Three lights.
                 </Text>
+              </Stack>
+            </Accordion.Panel>
+          </Accordion.Item>
+
+          <Accordion.Item value="bars">
+            <Accordion.Control icon={<IconBulb size={16} />}>
+              Bars
+            </Accordion.Control>
+            <Accordion.Panel>
+              <Stack gap="sm">
+                <Switch
+                  label={`${BAR_FIXTURES.length} edge-mounted bars`}
+                  checked={showBars}
+                  onChange={(event) => setShowBars(event.currentTarget.checked)}
+                  size="sm"
+                />
+                <NumberInput
+                  label="Rotation offset"
+                  suffix="°"
+                  min={0}
+                  max={360}
+                  step={1}
+                  decimalScale={0}
+                  value={barRotationDeg}
+                  onChange={(value) =>
+                    setBarRotationDeg(typeof value === "number" ? value : 0)
+                  }
+                  size="xs"
+                />
+                <NumberInput
+                  label="Beam length"
+                  suffix=" m"
+                  min={0.05}
+                  max={12}
+                  step={0.05}
+                  decimalScale={2}
+                  value={barBeamLengthMeters}
+                  onChange={(value) =>
+                    setBarBeamLengthMeters(
+                      typeof value === "number" ? value : 0.7
+                    )
+                  }
+                  size="xs"
+                />
+                <NumberInput
+                  label="Beam angle"
+                  suffix="°"
+                  min={1}
+                  max={70}
+                  step={1}
+                  decimalScale={0}
+                  value={barBeamAngleDeg}
+                  onChange={(value) =>
+                    setBarBeamAngleDeg(typeof value === "number" ? value : 9)
+                  }
+                  size="xs"
+                />
+                <NumberInput
+                  label="Mount offset"
+                  suffix=" m"
+                  min={0}
+                  max={0.3}
+                  step={0.005}
+                  decimalScale={3}
+                  value={barMountOffsetMeters}
+                  onChange={(value) =>
+                    setBarMountOffsetMeters(
+                      typeof value === "number" ? value : 0.04
+                    )
+                  }
+                  size="xs"
+                />
+                <Box>
+                  <Text
+                    size="xs"
+                    fw={500}
+                    mb={6}
+                  >
+                    Front emitter brightness
+                  </Text>
+                  <Slider
+                    min={0}
+                    max={1.5}
+                    step={0.05}
+                    value={barEmitterBrightness}
+                    onChange={setBarEmitterBrightness}
+                    size="sm"
+                  />
+                </Box>
+                <Box>
+                  <Text
+                    size="xs"
+                    fw={500}
+                    mb={6}
+                  >
+                    Rear COB brightness
+                  </Text>
+                  <Slider
+                    min={0}
+                    max={1.5}
+                    step={0.05}
+                    value={barCobBrightness}
+                    onChange={setBarCobBrightness}
+                    size="sm"
+                  />
+                </Box>
+              </Stack>
+            </Accordion.Panel>
+          </Accordion.Item>
+
+          <Accordion.Item value="music">
+            <Accordion.Control icon={<IconMusic size={16} />}>
+              Music playback
+            </Accordion.Control>
+            <Accordion.Panel>
+              <Stack gap="sm">
+                <FileButton
+                  onChange={setSongFile}
+                  accept="audio/*"
+                >
+                  {(props) => (
+                    <Button
+                      {...props}
+                      leftSection={<IconUpload size={16} />}
+                      variant="default"
+                      size="xs"
+                      fullWidth
+                    >
+                      Choose song
+                    </Button>
+                  )}
+                </FileButton>
+                <Group
+                  gap="xs"
+                  grow
+                >
+                  <Button
+                    leftSection={
+                      isPlaying ? (
+                        <IconPlayerPause size={16} />
+                      ) : (
+                        <IconPlayerPlay size={16} />
+                      )
+                    }
+                    onClick={() => void togglePlayback()}
+                    disabled={!canPlay}
+                    size="xs"
+                  >
+                    {isPlaying ? "Pause" : "Play"}
+                  </Button>
+                </Group>
+                <Text
+                  size="xs"
+                  c={songName ? undefined : "dimmed"}
+                  truncate
+                  title={songName ?? undefined}
+                >
+                  {songName ?? "No song selected"}
+                </Text>
+                <Box>
+                  <Text
+                    size="xs"
+                    fw={500}
+                    mb={6}
+                  >
+                    <Group
+                      gap={6}
+                      component="span"
+                    >
+                      <IconVolume size={14} />
+                      Volume
+                    </Group>
+                  </Text>
+                  <Slider
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={volume}
+                    onChange={setVolume}
+                    size="sm"
+                    label={(value) => `${Math.round(value * 100)}%`}
+                  />
+                </Box>
+                {playbackError ? (
+                  <Text
+                    size="xs"
+                    c="red"
+                  >
+                    {playbackError}
+                  </Text>
+                ) : null}
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>
@@ -351,18 +570,21 @@ function Menu() {
                 <Text size="xs">Z: {STRUCTURE_SIZE.z.toFixed(2)} m</Text>
                 <Text
                   size="xs"
-                  c={validation.valid ? "dimmed" : "red"}
+                  c={validation.valid && fixtureValidation.valid ? "dimmed" : "red"}
                   mt="xs"
                 >
-                  {validation.valid
+                  {validation.valid && fixtureValidation.valid
                     ? "Data integrity checks pass."
-                    : validation.errors.join(", ")}
+                    : [...validation.errors, ...fixtureValidation.errors].join(
+                        ", "
+                      )}
                 </Text>
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>
-        </Accordion>
-      </Stack>
+          </Accordion>
+        </Stack>
+      </ScrollArea>
     </aside>
   )
 }

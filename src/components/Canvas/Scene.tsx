@@ -9,28 +9,42 @@ import {
   useFBX,
 } from "@react-three/drei"
 import * as THREE from "three"
+import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js"
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js"
 import {
-  DMX_FIXTURES,
-  DmxFixture,
   STRUCTURE_PANELS,
   STRUCTURE_EDGES_RESOLVED,
   STRUCTURE_VERTICES_METERS,
   getPanelInsetPositions,
 } from "../../data/carStructure"
 import {
+  BAR_FIXTURES,
+  BarFixture,
+  SPOTLIGHT_FIXTURES,
+  SpotlightFixture,
+} from "../../data/fixtures"
+import {
   HUMAN_MODEL_URL,
   HUMAN_PLACEMENTS,
   HumanPlacement,
 } from "../../data/humans"
-import { DmxRenderMode, useAbyssStore } from "../../hooks/useAbyssStore"
+import { useAbyssStore } from "../../hooks/useAbyssStore"
 
 const Y_AXIS = new THREE.Vector3(0, 1, 0)
-const NEGATIVE_Y_AXIS = new THREE.Vector3(0, -1, 0)
-const WORLD_UP = new THREE.Vector3(0, 1, 0)
-const FAKE_BEAM_LENGTH_METERS = 8
 const REAL_BEAM_DISTANCE_METERS = 18
 const CLOUD_FADE_SECONDS = 5
+const BAR_LENGTH_METERS = 0.5
+const BAR_WIDTH_METERS = 0.0508
+const BAR_BASE_HEIGHT_METERS = 0.0508
+const BAR_GAP_METERS = 0.0254
+const BAR_HEAD_HEIGHT_METERS = 0.0762
+const BAR_SPIN_DEG_PER_SECOND = 36
+const BAR_REAR_COB_WIDTH_METERS = BAR_LENGTH_METERS * 0.78
+const BAR_REAR_COB_HEIGHT_METERS = BAR_WIDTH_METERS * 0.65
+const BAR_REAR_COB_INTENSITY_SCALE = 10
+const DEBUG_BAR_BEAM_FIXTURE_ID = "bar-right-9-12-01"
+
+RectAreaLightUniformsLib.init()
 
 useFBX.preload(HUMAN_MODEL_URL)
 
@@ -51,33 +65,59 @@ function smoothstep(value: number) {
   return clamped * clamped * (3 - 2 * clamped)
 }
 
-function getFixtureBeamDirection(fixture: DmxFixture) {
-  const position = new THREE.Vector3(...fixture.position)
-  const target = new THREE.Vector3(...fixture.baseTarget)
-  const baseDirection = target.sub(position)
-
-  if (baseDirection.lengthSq() < 1e-8) {
-    baseDirection.set(0, 0, -1)
-  }
-
-  const direction = baseDirection.normalize()
-  const yawRadians = THREE.MathUtils.degToRad(fixture.rotation.yDeg)
+function getFixtureBeamDirection(fixture: SpotlightFixture) {
+  const direction = new THREE.Vector3(...fixture.neutralDirection).normalize()
+  const rotationXAxis = new THREE.Vector3(...fixture.rotationXAxis).normalize()
+  const rotationYAxis = new THREE.Vector3(...fixture.rotationYAxis).normalize()
   const pitchRadians = THREE.MathUtils.degToRad(fixture.rotation.xDeg)
-  direction.applyAxisAngle(WORLD_UP, yawRadians)
+  const yawRadians = THREE.MathUtils.degToRad(fixture.rotation.yDeg)
 
-  const right = new THREE.Vector3().crossVectors(direction, WORLD_UP)
+  return direction
+    .applyAxisAngle(rotationXAxis, pitchRadians)
+    .applyAxisAngle(rotationYAxis, yawRadians)
+    .normalize()
+}
 
-  if (right.lengthSq() < 1e-8) {
-    right.set(1, 0, 0)
-  }
+function getBarQuaternion(fixture: BarFixture) {
+  const xAxis = new THREE.Vector3(...fixture.mountDirection).normalize()
+  const yAxis = new THREE.Vector3(...fixture.neutralDirection).normalize()
+  const zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis).normalize()
 
-  return direction.applyAxisAngle(right.normalize(), pitchRadians).normalize()
+  return new THREE.Quaternion().setFromRotationMatrix(
+    new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis)
+  )
 }
 
 function getBeamHalfAngleRadians(beamAngleDeg: number) {
   return THREE.MathUtils.degToRad(
     THREE.MathUtils.clamp(beamAngleDeg, 1, 85) / 2
   )
+}
+
+function normalizeBarRotationDeg(rotationDeg: number) {
+  return THREE.MathUtils.euclideanModulo(rotationDeg + 180, 360) - 180
+}
+
+function normalizeBarRotation0To360Deg(rotationDeg: number) {
+  return THREE.MathUtils.euclideanModulo(rotationDeg, 360)
+}
+
+function getFakeBeamLengthScale(rotationDeg: number) {
+  const rotation0To360 = normalizeBarRotation0To360Deg(rotationDeg)
+
+  if (rotation0To360 <= 90 || rotation0To360 >= 270) {
+    return 1
+  }
+
+  if (rotation0To360 < 100) {
+    return THREE.MathUtils.clamp((100 - rotation0To360) / 10, 0, 1)
+  }
+
+  if (rotation0To360 <= 260) {
+    return 0
+  }
+
+  return THREE.MathUtils.clamp((rotation0To360 - 260) / 10, 0, 1)
 }
 
 interface TubeFrameProps {
@@ -406,29 +446,25 @@ function AnimatedClouds() {
   )
 }
 
-interface DmxCanFixtureProps {
-  fixture: DmxFixture
-  renderMode: DmxRenderMode
+interface SpotlightFixtureProps {
+  fixture: SpotlightFixture
   color: string
-  realIntensity: number
+  intensity: number
   beamAngleDeg: number
   castShadows: boolean
   bodyMaterial: THREE.Material
   lensMaterial: THREE.Material
-  fakeBeamMaterial: THREE.Material
 }
 
-function DmxCanFixture({
+function SpotlightFixtureView({
   fixture,
-  renderMode,
   color,
-  realIntensity,
+  intensity,
   beamAngleDeg,
   castShadows,
   bodyMaterial,
   lensMaterial,
-  fakeBeamMaterial,
-}: DmxCanFixtureProps) {
+}: SpotlightFixtureProps) {
   const lightRef = useRef<THREE.SpotLight>(null)
   const targetRef = useRef<THREE.Object3D>(null)
   const direction = useMemo(() => getFixtureBeamDirection(fixture), [fixture])
@@ -471,51 +507,287 @@ function DmxCanFixture({
       >
         <cylinderGeometry args={[0.095, 0.095, 0.03, 20]} />
       </mesh>
-      {renderMode === "real" && (
-        <>
-          <object3D
-            ref={targetRef}
-            position={beamTarget}
-          />
-          <spotLight
-            ref={lightRef}
-            position={lensPosition}
-            color={color}
-            intensity={realIntensity}
-            angle={halfAngleRadians}
-            penumbra={0.42}
-            distance={REAL_BEAM_DISTANCE_METERS}
-            decay={1.25}
-            castShadow={castShadows}
-            shadow-mapSize-width={512}
-            shadow-mapSize-height={512}
-            shadow-bias={-0.0002}
-          />
-        </>
-      )}
-      {renderMode === "fake" && (
+      <object3D
+        ref={targetRef}
+        position={beamTarget}
+      />
+      <spotLight
+        ref={lightRef}
+        position={lensPosition}
+        color={color}
+        intensity={intensity}
+        angle={halfAngleRadians}
+        penumbra={0.42}
+        distance={REAL_BEAM_DISTANCE_METERS}
+        decay={1.25}
+        castShadow={castShadows}
+        shadow-mapSize-width={512}
+        shadow-mapSize-height={512}
+        shadow-bias={-0.0002}
+      />
+    </group>
+  )
+}
+
+interface BarFixtureProps {
+  fixture: BarFixture
+  rotationOffsetDeg: number
+  emitterBrightness: number
+  cobBrightness: number
+  beamLengthMeters: number
+  beamAngleDeg: number
+  mountOffsetMeters: number
+  bodyMaterial: THREE.Material
+}
+
+interface BarEmitterProps {
+  color: string
+  x: number
+  emitterBrightness: number
+  beamRadius: number
+  beamLengthMeters: number
+  beamRef: (mesh: THREE.Mesh | null) => void
+}
+
+function BarEmitter({
+  color,
+  x,
+  emitterBrightness,
+  beamRadius,
+  beamLengthMeters,
+  beamRef,
+}: BarEmitterProps) {
+  return (
+    <group>
+      <mesh position={[x, BAR_HEAD_HEIGHT_METERS / 2 + 0.004, 0.012]}>
+        <sphereGeometry args={[0.016, 18, 10]} />
+        <meshLambertMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={emitterBrightness}
+        />
+      </mesh>
+      <mesh
+        ref={beamRef}
+        position={[x, BAR_HEAD_HEIGHT_METERS / 2 + beamLengthMeters / 2, 0.012]}
+        scale={[beamRadius, beamLengthMeters, beamRadius]}
+        renderOrder={2}
+      >
+        <coneGeometry args={[1, 1, 18, 1, true]} />
+        <meshLambertMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={emitterBrightness * 0.6}
+          opacity={THREE.MathUtils.clamp(emitterBrightness * 0.18, 0, 0.28)}
+          transparent
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+function BarFixtureView({
+  fixture,
+  rotationOffsetDeg,
+  emitterBrightness,
+  cobBrightness,
+  beamLengthMeters,
+  beamAngleDeg,
+  mountOffsetMeters,
+  bodyMaterial,
+}: BarFixtureProps) {
+  const headRef = useRef<THREE.Group>(null)
+  const beamRefs = useRef<Array<THREE.Mesh | null>>([])
+  const lastBeamDebugLogRef = useRef(0)
+  const quaternion = useMemo(() => getBarQuaternion(fixture), [fixture])
+  const position = useMemo(
+    () =>
+      new THREE.Vector3(...fixture.mountPoint).add(
+        new THREE.Vector3(...fixture.neutralDirection).multiplyScalar(
+          THREE.MathUtils.clamp(mountOffsetMeters, 0, 0.3)
+        )
+      ),
+    [fixture, mountOffsetMeters]
+  )
+  const baseRotationDeg = normalizeBarRotationDeg(
+    fixture.rotationDeg + rotationOffsetDeg
+  )
+  const headRotation = THREE.MathUtils.degToRad(baseRotationDeg)
+  const safeBeamLength = Math.max(0.05, beamLengthMeters)
+  const beamRadius =
+    Math.tan(getBeamHalfAngleRadians(beamAngleDeg)) * safeBeamLength
+  const emitterXStart = -BAR_LENGTH_METERS / 2 + BAR_LENGTH_METERS / 16
+  const emitterSpacing = BAR_LENGTH_METERS / 8
+  const minBeamLength = Math.min(
+    safeBeamLength,
+    Math.max(0.001, mountOffsetMeters)
+  )
+
+  function getEffectiveBeamLength(rotationDeg: number) {
+    if (!fixture.scaleFakeBeamWithRotation) {
+      return safeBeamLength
+    }
+
+    const scale = getFakeBeamLengthScale(rotationDeg)
+
+    return THREE.MathUtils.lerp(minBeamLength, safeBeamLength, scale)
+  }
+
+  function updateBeamMeshes(rotationDeg: number) {
+    const effectiveBeamLength = getEffectiveBeamLength(rotationDeg)
+    const effectiveBeamRadius =
+      Math.tan(getBeamHalfAngleRadians(beamAngleDeg)) * effectiveBeamLength
+
+    beamRefs.current.forEach((beam) => {
+      if (!beam) {
+        return
+      }
+
+      beam.position.y = BAR_HEAD_HEIGHT_METERS / 2 + effectiveBeamLength / 2
+      beam.scale.set(
+        effectiveBeamRadius,
+        effectiveBeamLength,
+        effectiveBeamRadius
+      )
+    })
+  }
+
+  useLayoutEffect(() => {
+    updateBeamMeshes(baseRotationDeg)
+  })
+
+  useFrame(({ clock }) => {
+    if (!headRef.current) {
+      return
+    }
+
+    const rawRotationDeg =
+      baseRotationDeg + clock.elapsedTime * BAR_SPIN_DEG_PER_SECOND
+    const rotationDeg = normalizeBarRotationDeg(rawRotationDeg)
+    const effectiveBeamLength = getEffectiveBeamLength(rotationDeg)
+
+    headRef.current.rotation.x = THREE.MathUtils.degToRad(rotationDeg)
+    updateBeamMeshes(rotationDeg)
+
+    if (
+      fixture.id === DEBUG_BAR_BEAM_FIXTURE_ID &&
+      clock.elapsedTime - lastBeamDebugLogRef.current > 0.25
+    ) {
+      lastBeamDebugLogRef.current = clock.elapsedTime
+      const rotation0To360Deg = normalizeBarRotation0To360Deg(rawRotationDeg)
+      const scale = getFakeBeamLengthScale(rotation0To360Deg)
+
+      console.info(
+        `[Abyss bar beam debug] ${fixture.id} ` +
+          `raw=${rawRotationDeg.toFixed(2)}deg ` +
+          `rot360=${rotation0To360Deg.toFixed(2)}deg ` +
+          `signed=${rotationDeg.toFixed(2)}deg ` +
+          `scale=${scale.toFixed(3)} ` +
+          `length=${effectiveBeamLength.toFixed(3)}m ` +
+          `min=${minBeamLength.toFixed(3)}m ` +
+          `max=${safeBeamLength.toFixed(3)}m ` +
+          `enabled=${fixture.scaleFakeBeamWithRotation}`
+      )
+    }
+  })
+
+  return (
+    <group
+      position={position}
+      quaternion={quaternion}
+    >
+      <mesh
+        castShadow
+        receiveShadow
+        position={[0, BAR_BASE_HEIGHT_METERS / 2, 0]}
+        material={bodyMaterial}
+      >
+        <boxGeometry
+          args={[
+            BAR_LENGTH_METERS,
+            BAR_BASE_HEIGHT_METERS,
+            BAR_WIDTH_METERS * 1.08,
+          ]}
+        />
+      </mesh>
+      <group
+        ref={headRef}
+        position={[
+          0,
+          BAR_BASE_HEIGHT_METERS + BAR_GAP_METERS + BAR_HEAD_HEIGHT_METERS / 2,
+          0,
+        ]}
+        rotation={[headRotation, 0, 0]}
+      >
         <mesh
-          position={lensPosition
-            .clone()
-            .addScaledVector(direction, FAKE_BEAM_LENGTH_METERS / 2)}
-          quaternion={new THREE.Quaternion().setFromUnitVectors(
-            NEGATIVE_Y_AXIS,
-            direction
-          )}
-          renderOrder={2}
-          material={fakeBeamMaterial}
+          castShadow
+          receiveShadow
+          material={bodyMaterial}
         >
-          <coneGeometry
-            args={[
-              Math.tan(halfAngleRadians) * FAKE_BEAM_LENGTH_METERS,
-              FAKE_BEAM_LENGTH_METERS,
-              32,
-              1,
-              true,
-            ]}
+          <boxGeometry
+            args={[BAR_LENGTH_METERS, BAR_HEAD_HEIGHT_METERS, BAR_WIDTH_METERS]}
           />
         </mesh>
-      )}
+        <mesh
+          castShadow
+          receiveShadow
+          position={[-BAR_LENGTH_METERS / 2 - 0.012, 0, 0]}
+          rotation={[0, 0, Math.PI / 2]}
+          material={bodyMaterial}
+        >
+          <cylinderGeometry
+            args={[BAR_WIDTH_METERS * 0.55, BAR_WIDTH_METERS * 0.55, 0.024, 18]}
+          />
+        </mesh>
+        <mesh
+          castShadow
+          receiveShadow
+          position={[BAR_LENGTH_METERS / 2 + 0.012, 0, 0]}
+          rotation={[0, 0, Math.PI / 2]}
+          material={bodyMaterial}
+        >
+          <cylinderGeometry
+            args={[BAR_WIDTH_METERS * 0.55, BAR_WIDTH_METERS * 0.55, 0.024, 18]}
+          />
+        </mesh>
+        {fixture.frontEmitters.map((emitter, index) => {
+          const x = emitterXStart + emitterSpacing * index
+
+          return (
+            <BarEmitter
+              key={emitter.id}
+              color={emitter.color}
+              x={x}
+              emitterBrightness={emitterBrightness}
+              beamRadius={beamRadius}
+              beamLengthMeters={safeBeamLength}
+              beamRef={(mesh) => {
+                beamRefs.current[index] = mesh
+              }}
+            />
+          )
+        })}
+        <rectAreaLight
+          width={BAR_REAR_COB_WIDTH_METERS}
+          height={BAR_REAR_COB_HEIGHT_METERS}
+          color={fixture.rearCobColor}
+          intensity={cobBrightness * BAR_REAR_COB_INTENSITY_SCALE}
+          position={[0, -BAR_HEAD_HEIGHT_METERS / 2 - 0.006, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        />
+        <mesh position={[0, -BAR_HEAD_HEIGHT_METERS / 2 - 0.003, 0]}>
+          <boxGeometry
+            args={[
+              BAR_REAR_COB_WIDTH_METERS,
+              0.004,
+              BAR_REAR_COB_HEIGHT_METERS,
+            ]}
+          />
+          <meshBasicMaterial color={fixture.rearCobColor} />
+        </mesh>
+      </group>
     </group>
   )
 }
@@ -561,13 +833,18 @@ function Scene() {
     showPanels,
     panelColor,
     panelGapMeters,
-    showDmxFixtures,
-    dmxRenderMode,
-    dmxColor,
-    dmxRealIntensity,
-    dmxFakeIntensity,
-    dmxBeamAngleDeg,
-    dmxCastShadows,
+    showSpotlights,
+    spotlightColor,
+    spotlightIntensity,
+    spotlightBeamAngleDeg,
+    spotlightCastShadows,
+    showBars,
+    barRotationDeg,
+    barEmitterBrightness,
+    barCobBrightness,
+    barBeamLengthMeters,
+    barBeamAngleDeg,
+    barMountOffsetMeters,
     showHumans,
     humanScale,
     humanAnimationSpeed,
@@ -607,35 +884,19 @@ function Scene() {
   const lensMaterial = useMemo(
     () =>
       createSurfaceMaterial({
-        color: dmxColor,
-        emissive: dmxColor,
-        emissiveIntensity: dmxRenderMode === "real" ? 0.45 : 0.9,
+        color: spotlightColor,
+        emissive: spotlightColor,
+        emissiveIntensity: 0.45,
         roughness: 0.24,
         metalness: 0.12,
       }),
-    [dmxColor, dmxRenderMode]
-  )
-  const fakeBeamMaterial = useMemo(
-    () =>
-      createSurfaceMaterial({
-        color: dmxColor,
-        emissive: dmxColor,
-        emissiveIntensity: THREE.MathUtils.clamp(dmxFakeIntensity * 2, 0, 1.2),
-        transparent: true,
-        opacity: THREE.MathUtils.clamp(dmxFakeIntensity, 0, 0.65),
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        roughness: 1,
-        metalness: 0,
-      }),
-    [dmxColor, dmxFakeIntensity]
+    [spotlightColor]
   )
 
   useEffect(() => () => tubeMaterial.dispose(), [tubeMaterial])
   useEffect(() => () => panelMaterial.dispose(), [panelMaterial])
   useEffect(() => () => bodyMaterial.dispose(), [bodyMaterial])
   useEffect(() => () => lensMaterial.dispose(), [lensMaterial])
-  useEffect(() => () => fakeBeamMaterial.dispose(), [fakeBeamMaterial])
 
   return (
     <>
@@ -656,19 +917,31 @@ function Scene() {
             material={panelMaterial}
           />
         )}
-        {showDmxFixtures &&
-          DMX_FIXTURES.map((fixture) => (
-            <DmxCanFixture
+        {showSpotlights &&
+          SPOTLIGHT_FIXTURES.map((fixture) => (
+            <SpotlightFixtureView
               key={fixture.id}
               fixture={fixture}
-              renderMode={dmxRenderMode}
-              color={dmxColor}
-              realIntensity={dmxRealIntensity}
-              beamAngleDeg={dmxBeamAngleDeg}
-              castShadows={dmxCastShadows}
+              color={spotlightColor}
+              intensity={spotlightIntensity}
+              beamAngleDeg={spotlightBeamAngleDeg}
+              castShadows={spotlightCastShadows}
               bodyMaterial={bodyMaterial}
               lensMaterial={lensMaterial}
-              fakeBeamMaterial={fakeBeamMaterial}
+            />
+          ))}
+        {showBars &&
+          BAR_FIXTURES.map((fixture) => (
+            <BarFixtureView
+              key={fixture.id}
+              fixture={fixture}
+              rotationOffsetDeg={barRotationDeg}
+              emitterBrightness={barEmitterBrightness}
+              cobBrightness={barCobBrightness}
+              beamLengthMeters={barBeamLengthMeters}
+              beamAngleDeg={barBeamAngleDeg}
+              mountOffsetMeters={barMountOffsetMeters}
+              bodyMaterial={bodyMaterial}
             />
           ))}
         <TubeFrame

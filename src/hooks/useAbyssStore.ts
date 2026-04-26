@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react"
 
-export type DmxRenderMode = "real" | "fake"
-
 export interface AbyssViewState {
   menuOpen: boolean
   showLabels: boolean
@@ -11,13 +9,18 @@ export interface AbyssViewState {
   showPanels: boolean
   panelColor: string
   panelGapMeters: number
-  showDmxFixtures: boolean
-  dmxRenderMode: DmxRenderMode
-  dmxColor: string
-  dmxRealIntensity: number
-  dmxFakeIntensity: number
-  dmxBeamAngleDeg: number
-  dmxCastShadows: boolean
+  showSpotlights: boolean
+  spotlightColor: string
+  spotlightIntensity: number
+  spotlightBeamAngleDeg: number
+  spotlightCastShadows: boolean
+  showBars: boolean
+  barRotationDeg: number
+  barEmitterBrightness: number
+  barCobBrightness: number
+  barBeamLengthMeters: number
+  barBeamAngleDeg: number
+  barMountOffsetMeters: number
   showHumans: boolean
   humanScale: number
   humanAnimationSpeed: number
@@ -32,13 +35,18 @@ export interface AbyssViewActions {
   setShowPanels: (show: boolean) => void
   setPanelColor: (color: string) => void
   setPanelGapMeters: (gap: number) => void
-  setShowDmxFixtures: (show: boolean) => void
-  setDmxRenderMode: (mode: DmxRenderMode) => void
-  setDmxColor: (color: string) => void
-  setDmxRealIntensity: (intensity: number) => void
-  setDmxFakeIntensity: (intensity: number) => void
-  setDmxBeamAngleDeg: (angle: number) => void
-  setDmxCastShadows: (castShadows: boolean) => void
+  setShowSpotlights: (show: boolean) => void
+  setSpotlightColor: (color: string) => void
+  setSpotlightIntensity: (intensity: number) => void
+  setSpotlightBeamAngleDeg: (angle: number) => void
+  setSpotlightCastShadows: (castShadows: boolean) => void
+  setShowBars: (show: boolean) => void
+  setBarRotationDeg: (rotation: number) => void
+  setBarEmitterBrightness: (brightness: number) => void
+  setBarCobBrightness: (brightness: number) => void
+  setBarBeamLengthMeters: (length: number) => void
+  setBarBeamAngleDeg: (angle: number) => void
+  setBarMountOffsetMeters: (offset: number) => void
   setShowHumans: (showHumans: boolean) => void
   setHumanScale: (humanScale: number) => void
   setHumanAnimationSpeed: (humanAnimationSpeed: number) => void
@@ -53,13 +61,18 @@ const DEFAULT_STATE: AbyssViewState = {
   showPanels: true,
   panelColor: "#2f3030",
   panelGapMeters: 0.04,
-  showDmxFixtures: true,
-  dmxRenderMode: "real",
-  dmxColor: "#ff0000",
-  dmxRealIntensity: 1000,
-  dmxFakeIntensity: 0.24,
-  dmxBeamAngleDeg: 24,
-  dmxCastShadows: false,
+  showSpotlights: true,
+  spotlightColor: "#ff0000",
+  spotlightIntensity: 1000,
+  spotlightBeamAngleDeg: 24,
+  spotlightCastShadows: false,
+  showBars: true,
+  barRotationDeg: 0,
+  barEmitterBrightness: 0.15,
+  barCobBrightness: 0.75,
+  barBeamLengthMeters: 20,
+  barBeamAngleDeg: 1,
+  barMountOffsetMeters: 0.04,
   showHumans: true,
   humanScale: 1,
   humanAnimationSpeed: 1,
@@ -94,13 +107,24 @@ export function useAbyssStore(): AbyssViewState & AbyssViewActions {
     setShowPanels: (showPanels) => setState({ showPanels }),
     setPanelColor: (panelColor) => setState({ panelColor }),
     setPanelGapMeters: (panelGapMeters) => setState({ panelGapMeters }),
-    setShowDmxFixtures: (showDmxFixtures) => setState({ showDmxFixtures }),
-    setDmxRenderMode: (dmxRenderMode) => setState({ dmxRenderMode }),
-    setDmxColor: (dmxColor) => setState({ dmxColor }),
-    setDmxRealIntensity: (dmxRealIntensity) => setState({ dmxRealIntensity }),
-    setDmxFakeIntensity: (dmxFakeIntensity) => setState({ dmxFakeIntensity }),
-    setDmxBeamAngleDeg: (dmxBeamAngleDeg) => setState({ dmxBeamAngleDeg }),
-    setDmxCastShadows: (dmxCastShadows) => setState({ dmxCastShadows }),
+    setShowSpotlights: (showSpotlights) => setState({ showSpotlights }),
+    setSpotlightColor: (spotlightColor) => setState({ spotlightColor }),
+    setSpotlightIntensity: (spotlightIntensity) =>
+      setState({ spotlightIntensity }),
+    setSpotlightBeamAngleDeg: (spotlightBeamAngleDeg) =>
+      setState({ spotlightBeamAngleDeg }),
+    setSpotlightCastShadows: (spotlightCastShadows) =>
+      setState({ spotlightCastShadows }),
+    setShowBars: (showBars) => setState({ showBars }),
+    setBarRotationDeg: (barRotationDeg) => setState({ barRotationDeg }),
+    setBarEmitterBrightness: (barEmitterBrightness) =>
+      setState({ barEmitterBrightness }),
+    setBarCobBrightness: (barCobBrightness) => setState({ barCobBrightness }),
+    setBarBeamLengthMeters: (barBeamLengthMeters) =>
+      setState({ barBeamLengthMeters }),
+    setBarBeamAngleDeg: (barBeamAngleDeg) => setState({ barBeamAngleDeg }),
+    setBarMountOffsetMeters: (barMountOffsetMeters) =>
+      setState({ barMountOffsetMeters }),
     setShowHumans: (showHumans) => setState({ showHumans }),
     setHumanScale: (humanScale) => setState({ humanScale }),
     setHumanAnimationSpeed: (humanAnimationSpeed) =>
