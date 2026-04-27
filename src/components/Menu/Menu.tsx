@@ -293,10 +293,10 @@ function Menu() {
                   size="sm"
                 />
                 <NumberInput
-                  label="Rotation offset"
+                  label="Rotation trim"
                   suffix="°"
-                  min={0}
-                  max={360}
+                  min={-90}
+                  max={90}
                   step={1}
                   decimalScale={0}
                   value={barRotationDeg}

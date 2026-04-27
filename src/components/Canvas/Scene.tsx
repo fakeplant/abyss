@@ -40,13 +40,29 @@ const BAR_WIDTH_METERS = 0.0508
 const BAR_BASE_HEIGHT_METERS = 0.0508
 const BAR_GAP_METERS = 0.0254
 const BAR_HEAD_HEIGHT_METERS = 0.0762
-const BAR_SPIN_DEG_PER_SECOND = 36
+const BAR_NOISE_AMPLITUDE_DEG = 100
+const BAR_NOISE_POSITION_SCALE = 0.42
+const BAR_NOISE_TIME_SCALE = 0.48
 const BAR_REAR_COB_WIDTH_METERS = BAR_LENGTH_METERS * 0.78
 const BAR_REAR_COB_HEIGHT_METERS = BAR_WIDTH_METERS * 0.65
 const BAR_REAR_COB_INTENSITY_SCALE = 10
 const MAX_ACTIVE_BAR_COB_RECT_AREA_LIGHTS = 8
 const LASER_BODY_SIZE_METERS: [number, number, number] = [0.26, 0.16, 0.2]
 const LASER_BEAM_COUNT = 9
+const PERLIN_GRADIENTS = [
+  [1, 1, 0],
+  [-1, 1, 0],
+  [1, -1, 0],
+  [-1, -1, 0],
+  [1, 0, 1],
+  [-1, 0, 1],
+  [1, 0, -1],
+  [-1, 0, -1],
+  [0, 1, 1],
+  [0, -1, 1],
+  [0, 1, -1],
+  [0, -1, -1],
+] as const
 
 RectAreaLightUniformsLib.init()
 
@@ -108,10 +124,6 @@ function getBeamHalfAngleRadians(beamAngleDeg: number) {
   )
 }
 
-function normalizeBarRotationDeg(rotationDeg: number) {
-  return THREE.MathUtils.euclideanModulo(rotationDeg + 180, 360) - 180
-}
-
 function normalizeBarRotation0To360Deg(rotationDeg: number) {
   return THREE.MathUtils.euclideanModulo(rotationDeg, 360)
 }
@@ -132,6 +144,91 @@ function getFakeBeamLengthScale(rotationDeg: number) {
   }
 
   return THREE.MathUtils.clamp((rotation0To360 - 260) / 10, 0, 1)
+}
+
+function getPerlinHash(x: number, y: number, z: number) {
+  let hash = Math.imul(x, 374761393)
+  hash ^= Math.imul(y, 668265263)
+  hash ^= Math.imul(z, 2147483647)
+  hash ^= hash >>> 13
+  hash = Math.imul(hash, 1274126177)
+
+  return hash >>> 0
+}
+
+function getPerlinGradientDot(
+  latticeX: number,
+  latticeY: number,
+  latticeZ: number,
+  x: number,
+  y: number,
+  z: number
+) {
+  const gradient =
+    PERLIN_GRADIENTS[
+      getPerlinHash(latticeX, latticeY, latticeZ) % PERLIN_GRADIENTS.length
+    ]
+
+  return (
+    gradient[0] * (x - latticeX) +
+    gradient[1] * (y - latticeY) +
+    gradient[2] * (z - latticeZ)
+  )
+}
+
+function getPerlinFade(value: number) {
+  return value * value * value * (value * (value * 6 - 15) + 10)
+}
+
+function getPerlinNoise3d(x: number, y: number, z: number) {
+  const x0 = Math.floor(x)
+  const y0 = Math.floor(y)
+  const z0 = Math.floor(z)
+  const x1 = x0 + 1
+  const y1 = y0 + 1
+  const z1 = z0 + 1
+  const tx = getPerlinFade(x - x0)
+  const ty = getPerlinFade(y - y0)
+  const tz = getPerlinFade(z - z0)
+
+  const n000 = getPerlinGradientDot(x0, y0, z0, x, y, z)
+  const n100 = getPerlinGradientDot(x1, y0, z0, x, y, z)
+  const n010 = getPerlinGradientDot(x0, y1, z0, x, y, z)
+  const n110 = getPerlinGradientDot(x1, y1, z0, x, y, z)
+  const n001 = getPerlinGradientDot(x0, y0, z1, x, y, z)
+  const n101 = getPerlinGradientDot(x1, y0, z1, x, y, z)
+  const n011 = getPerlinGradientDot(x0, y1, z1, x, y, z)
+  const n111 = getPerlinGradientDot(x1, y1, z1, x, y, z)
+  const nx00 = THREE.MathUtils.lerp(n000, n100, tx)
+  const nx10 = THREE.MathUtils.lerp(n010, n110, tx)
+  const nx01 = THREE.MathUtils.lerp(n001, n101, tx)
+  const nx11 = THREE.MathUtils.lerp(n011, n111, tx)
+  const nxy0 = THREE.MathUtils.lerp(nx00, nx10, ty)
+  const nxy1 = THREE.MathUtils.lerp(nx01, nx11, ty)
+
+  return THREE.MathUtils.lerp(nxy0, nxy1, tz)
+}
+
+function getBarNoiseRotationDeg(
+  position: THREE.Vector3,
+  elapsedTimeSeconds: number,
+  rotationTrimDeg: number
+) {
+  const x = position.x * BAR_NOISE_POSITION_SCALE
+  const y = position.y * BAR_NOISE_POSITION_SCALE
+  const z = position.z * BAR_NOISE_POSITION_SCALE
+  const time = elapsedTimeSeconds * BAR_NOISE_TIME_SCALE
+  const primary = getPerlinNoise3d(x, y, z + time)
+  const detail =
+    0.45 *
+    getPerlinNoise3d(x * 1.8 + 17.13, y * 1.8 - 4.71, z * 1.8 + time * 1.4)
+  const noise = THREE.MathUtils.clamp((primary + detail) * 1.45, -1, 1)
+
+  return THREE.MathUtils.clamp(
+    rotationTrimDeg + noise * BAR_NOISE_AMPLITUDE_DEG,
+    -BAR_NOISE_AMPLITUDE_DEG,
+    BAR_NOISE_AMPLITUDE_DEG
+  )
 }
 
 interface TubeFrameProps {
@@ -626,10 +723,8 @@ function BarFixtureView({
       ),
     [fixture, mountOffsetMeters]
   )
-  const baseRotationDeg = normalizeBarRotationDeg(
-    fixture.rotationDeg + rotationOffsetDeg
-  )
-  const headRotation = THREE.MathUtils.degToRad(baseRotationDeg)
+  const trimmedRotationDeg = THREE.MathUtils.clamp(rotationOffsetDeg, -90, 90)
+  const headRotation = THREE.MathUtils.degToRad(trimmedRotationDeg)
   const safeBeamLength = Math.max(0.05, beamLengthMeters)
   const beamRadius =
     Math.tan(getBeamHalfAngleRadians(beamAngleDeg)) * safeBeamLength
@@ -670,7 +765,7 @@ function BarFixtureView({
   }
 
   useLayoutEffect(() => {
-    updateBeamMeshes(baseRotationDeg)
+    updateBeamMeshes(trimmedRotationDeg)
   })
 
   useFrame(({ clock }) => {
@@ -678,9 +773,11 @@ function BarFixtureView({
       return
     }
 
-    const rawRotationDeg =
-      baseRotationDeg + clock.elapsedTime * BAR_SPIN_DEG_PER_SECOND
-    const rotationDeg = normalizeBarRotationDeg(rawRotationDeg)
+    const rotationDeg = getBarNoiseRotationDeg(
+      position,
+      clock.elapsedTime,
+      trimmedRotationDeg
+    )
 
     headRef.current.rotation.x = THREE.MathUtils.degToRad(rotationDeg)
     updateBeamMeshes(rotationDeg)
