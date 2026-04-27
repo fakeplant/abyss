@@ -10,7 +10,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:github": "tsc && vite build --mode github && node scripts/prepare-github-pages.mjs",
     "convert:step": "node --max-old-space-size=8192 scripts/convert-step.mjs",
+    "deploy:github": "npm run build:github",
     "generate:bars": "tsx scripts/generate-bar-fixtures.ts",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"

@@ -3,7 +3,11 @@ import { RouterProvider, createRouter } from "@tanstack/react-router"
 
 import { routeTree } from "./routeTree.gen"
 
-const router = createRouter({ routeTree })
+const basepath =
+  import.meta.env.BASE_URL === "/"
+    ? "/"
+    : import.meta.env.BASE_URL.replace(/\/$/, "")
+const router = createRouter({ routeTree, basepath })
 
 declare module "@tanstack/react-router" {
   interface Register {
