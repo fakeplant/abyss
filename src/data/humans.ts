@@ -6,7 +6,7 @@ export interface HumanPlacement {
   scale: number
 }
 
-export const HUMAN_MODEL_URL = "/models/humans/wave-hip-hop-dance.fbx"
+export const HUMAN_MODEL_URL = `${import.meta.env.BASE_URL}models/humans/wave-hip-hop-dance.fbx`
 
 export const HUMAN_PLACEMENTS = [
   {
